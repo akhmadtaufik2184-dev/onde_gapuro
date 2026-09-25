@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="ondeGrad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#f8d594"/>
+      <stop offset="60%" stop-color="#e09f3e"/>
+      <stop offset="100%" stop-color="#b06d19"/>
+    </radialGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Background Base (Theme Forest Green) -->
+  <rect width="512" height="512" rx="110" fill="#236d4e" />
+
+  <!-- Outer Ring Accent -->
+  <circle cx="256" cy="256" r="195" fill="none" stroke="#52b788" stroke-width="8" opacity="0.6"/>
+
+  <!-- Golden Sesame Onde-Onde Body -->
+  <circle cx="256" cy="245" r="145" fill="url(#ondeGrad)" filter="url(#shadow)"/>
+
+  <!-- Sesame Seeds pattern -->
+  <!-- Center & Top seeds -->
+  <ellipse cx="256" cy="180" rx="6" ry="12" fill="#fff9db" transform="rotate(15 256 180)"/>
+  <ellipse cx="220" cy="195" rx="6" ry="12" fill="#fff9db" transform="rotate(-30 220 195)"/>
+  <ellipse cx="295" cy="190" rx="6" ry="12" fill="#fff9db" transform="rotate(40 295 190)"/>
+  <ellipse cx="256" cy="235" rx="6" ry="12" fill="#fff9db" transform="rotate(-10 256 235)"/>
+  <ellipse cx="195" cy="230" rx="6" ry="12" fill="#fff9db" transform="rotate(25 195 230)"/>
+  <ellipse cx="320" cy="235" rx="6" ry="12" fill="#fff9db" transform="rotate(-25 320 235)"/>
+  <ellipse cx="225" cy="275" rx="6" ry="12" fill="#fff9db" transform="rotate(35 225 275)"/>
+  <ellipse cx="285" cy="275" rx="6" ry="12" fill="#fff9db" transform="rotate(-40 285 275)"/>
+  <ellipse cx="170" cy="270" rx="6" ry="12" fill="#fff9db" transform="rotate(-15 170 270)"/>
+  <ellipse cx="345" cy="275" rx="6" ry="12" fill="#fff9db" transform="rotate(20 345 275)"/>
+  <ellipse cx="256" cy="315" rx="6" ry="12" fill="#fff9db" transform="rotate(5 256 315)"/>
+  <ellipse cx="205" cy="325" rx="6" ry="12" fill="#fff9db" transform="rotate(-45 205 325)"/>
+  <ellipse cx="310" cy="320" rx="6" ry="12" fill="#fff9db" transform="rotate(45 310 320)"/>
+
+  <!-- Brand Banner Ribbon -->
+  <rect x="96" y="380" width="320" height="64" rx="16" fill="#1b4332" stroke="#d8f3dc" stroke-width="3"/>
+  <text x="256" y="423" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-weight="900" font-size="30" fill="#ffffff" text-anchor="middle" letter-spacing="4">GAPURO</text>
+</svg>

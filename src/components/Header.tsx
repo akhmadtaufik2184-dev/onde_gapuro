@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActiveScreen } from '../types';
-import { ArrowLeft, Home, Calendar, Wifi, WifiOff } from 'lucide-react';
+import { ArrowLeft, Home, Calendar } from 'lucide-react';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface HeaderProps {
   activeScreen: ActiveScreen;
@@ -49,8 +50,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="bg-[#236d4e] text-white shadow-md select-none sticky top-0 z-30">
-      <div className="px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
+      <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
           {!isMainScreen && (
             <button
               onClick={() => onNavigate('input')}
@@ -64,12 +65,12 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             {isMainScreen ? (
               <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-bold leading-tight tracking-wide text-white drop-shadow-xs">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-base font-bold leading-tight tracking-wide text-white drop-shadow-xs">
                     Aplikasi Pesanan
                   </h1>
                   <span
-                    className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                    className={`inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${
                       isSyncing
                         ? 'bg-amber-400 text-amber-950 animate-pulse'
                         : 'bg-emerald-400/25 text-emerald-200 border border-emerald-300/30'
@@ -80,26 +81,30 @@ export const Header: React.FC<HeaderProps> = ({
                     <span>Realtime</span>
                   </span>
                 </div>
-                <p className="text-base font-semibold text-emerald-100 tracking-wide">
+                <p className="text-sm font-semibold text-emerald-100 tracking-wide">
                   Onde-onde Gapuro
                 </p>
               </div>
             ) : (
-              <h1 className="text-xl font-bold tracking-wide capitalize text-white">
+              <h1 className="text-lg font-bold tracking-wide capitalize text-white">
                 {getScreenTitle()}
               </h1>
             )}
           </div>
         </div>
 
+        {/* Right Action buttons */}
         <div className="flex items-center gap-1.5">
+          {/* PWA Install Button: Automatically hides when app is installed */}
+          <PWAInstallButton variant="header-button" />
+
           {!isMainScreen && (
             <button
               onClick={() => onNavigate('input')}
               title="Menu Utama"
               className="p-1.5 rounded-lg hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer text-white"
             >
-              <Home className="w-5 h-5" />
+              <Home className="w-4 h-4" />
             </button>
           )}
 
@@ -116,7 +121,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {isMainScreen && referenceDateDisplay && (
-        <div className="bg-[#1b553d] px-4 py-1.5 text-xs font-medium text-emerald-100 flex items-center justify-between border-t border-emerald-700/50">
+        <div className="bg-[#1b553d] px-3.5 py-1 text-xs font-medium text-emerald-100 flex items-center justify-between border-t border-emerald-700/50">
           <div className="flex items-center gap-1.5">
             <span className="font-semibold text-white">Tanggal :</span>
             <span>{referenceDateDisplay}</span>

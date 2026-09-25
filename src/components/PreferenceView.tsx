@@ -3,6 +3,7 @@ import { AppPreferences, ItemKey } from '../types';
 import { formatRupiah, parseNumber } from '../utils/format';
 import { Check, RotateCcw, ArrowLeft, Phone, Tag } from 'lucide-react';
 import { DEFAULT_PREFERENCES } from '../utils/storage';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface PreferenceViewProps {
   preferences: AppPreferences;
@@ -57,16 +58,19 @@ export const PreferenceView: React.FC<PreferenceViewProps> = ({
   ];
 
   return (
-    <div className="p-3 pb-8 max-w-md mx-auto">
+    <div className="p-3 pb-8 max-w-md mx-auto space-y-3">
       {savedAlert && (
-        <div className="mb-3 p-3 bg-emerald-100 border border-emerald-400 text-emerald-800 rounded-lg flex items-center gap-2 text-xs font-semibold animate-fade-in shadow-xs">
+        <div className="p-3 bg-emerald-100 border border-emerald-400 text-emerald-800 rounded-lg flex items-center gap-2 text-xs font-semibold animate-fade-in shadow-xs">
           <Check className="w-4 h-4 text-emerald-700" />
           <span>Pengaturan preferensi berhasil disimpan!</span>
         </div>
       )}
 
+      {/* PWA Install Card inside Settings: Automatically hidden when installed */}
+      <PWAInstallButton variant="settings-item" />
+
       {/* Box layout matching Gambar 2 */}
-      <div className="bg-white border-2 border-stone-800 rounded-md shadow-xs p-4 mb-4">
+      <div className="bg-white border-2 border-stone-800 rounded-md shadow-xs p-4">
         <form onSubmit={handleSave} className="space-y-4">
           {/* Telp Info/pemesanan */}
           <div>

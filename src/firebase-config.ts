@@ -1,0 +1,16 @@
+/**
+ * Firebase Config for Onde-Onde Gapuro
+ * Safe to commit & bundle for frontend client apps.
+ */
+export const firebaseConfig = {
+  projectId: "gen-lang-client-0031166728",
+  appId: "1:828999755904:web:9bf403dbc59d546b2dde65",
+  apiKey: "AIzaSyCc1ssmevv6pWFhwOodnLaOPnRQin8BMPw",
+  authDomain: "gen-lang-client-0031166728.firebaseapp.com",
+  firestoreDatabaseId: "ai-studio-ondeondegapuroap-295968b9-59bf-4b6a-a535-69a01e28b8dc",
+  storageBucket: "gen-lang-client-0031166728.firebasestorage.app",
+  messagingSenderId: "828999755904",
+  measurementId: "",
+  oAuthClientId: "828999755904-7ph7vep9ri8kiqmaui8oa76kodh3giom.apps.googleusercontent.com",
+  recaptchaSiteKey: ""
+};

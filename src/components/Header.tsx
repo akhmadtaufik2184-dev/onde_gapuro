@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActiveScreen } from '../types';
-import { ArrowLeft, Home, Calendar, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeft, Home, Calendar, Wifi, WifiOff } from 'lucide-react';
 
 interface HeaderProps {
   activeScreen: ActiveScreen;
@@ -8,6 +8,7 @@ interface HeaderProps {
   titleOverride?: string;
   referenceDateDisplay?: string;
   onChangeDateClick?: () => void;
+  isSyncing?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   titleOverride,
   referenceDateDisplay,
   onChangeDateClick,
+  isSyncing = false,
 }) => {
   const isMainScreen = activeScreen === 'input';
 
@@ -62,9 +64,22 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             {isMainScreen ? (
               <div>
-                <h1 className="text-lg font-bold leading-tight tracking-wide text-white drop-shadow-xs">
-                  Aplikasi Pesanan
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-lg font-bold leading-tight tracking-wide text-white drop-shadow-xs">
+                    Aplikasi Pesanan
+                  </h1>
+                  <span
+                    className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                      isSyncing
+                        ? 'bg-amber-400 text-amber-950 animate-pulse'
+                        : 'bg-emerald-400/25 text-emerald-200 border border-emerald-300/30'
+                    }`}
+                    title={isSyncing ? 'Menyinkronkan data...' : 'Realtime Sync Aktif'}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping"></span>
+                    <span>Realtime</span>
+                  </span>
+                </div>
                 <p className="text-base font-semibold text-emerald-100 tracking-wide">
                   Onde-onde Gapuro
                 </p>

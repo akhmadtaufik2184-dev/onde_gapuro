@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Orders collection: accessible for reading, creating, updating, and deleting by users of the app
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+
+    // App preferences (phone, item prices)
+    match /preferences/{prefId} {
+      allow read, write: if true;
+    }
+
+    // System settings (e.g. active simulated reference date if shared)
+    match /settings/{settingId} {
+      allow read, write: if true;
+    }
+  }
+}

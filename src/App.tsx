@@ -7,11 +7,10 @@ import React, { useState, useEffect } from 'react';
 import { ActiveScreen, AppPreferences, Order, RombongId } from './types';
 import {
   loadOrders,
-  saveOrders,
   loadPreferences,
-  savePreferences,
   getSavedReferenceDate,
   saveReferenceDate,
+  DEFAULT_PREFERENCES,
 } from './utils/storage';
 import { formatIndoDateFull, parseDateFromRaw } from './utils/format';
 import { Header } from './components/Header';
@@ -24,11 +23,21 @@ import { RombongView } from './components/RombongView';
 import { BottomNavBar } from './components/BottomNavBar';
 import { MockupGuideBar } from './components/MockupGuideBar';
 import { DateReferenceModal } from './components/DateReferenceModal';
+import {
+  subscribeToOrders,
+  subscribeToPreferences,
+  createOrderInFirestore,
+  updateOrderInFirestore,
+  deleteOrderInFirestore,
+  updatePaymentStatusInFirestore,
+  savePreferencesInFirestore,
+} from './services/orderService';
 
 export default function App() {
   const [orders, setOrders] = useState<Order[]>(() => loadOrders());
   const [preferences, setPreferences] = useState<AppPreferences>(() => loadPreferences());
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('input');
+  const [isSyncing, setIsSyncing] = useState<boolean>(true);
   
   // Specific order states for Edit (Gambar 4) and Cetak Nota (Gambar 5)
   const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<Order | null>(null);
@@ -43,46 +52,119 @@ export default function App() {
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
   const [isMobileFrame, setIsMobileFrame] = useState(true);
 
-  // Save changes to localStorage
+  // Real-time Firestore subscriptions for cross-device sync
   useEffect(() => {
-    saveOrders(orders);
-  }, [orders]);
+    setIsSyncing(true);
 
-  useEffect(() => {
-    savePreferences(preferences);
-  }, [preferences]);
-
-  // Handler: Add new order from Gambar 1
-  const handleSaveNewOrder = (orderData: Omit<Order, 'id' | 'createdAt'>) => {
-    const newOrder: Order = {
-      ...orderData,
-      id: `ord-${Date.now().toString(36)}`,
-      createdAt: Date.now(),
-    };
-    setOrders((prev) => [newOrder, ...prev]);
-  };
-
-  // Handler: Update order from Gambar 4
-  const handleUpdateOrder = (updatedOrder: Order) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o))
+    // 1. Subscribe to orders in real-time
+    const unsubscribeOrders = subscribeToOrders(
+      (realtimeOrders) => {
+        setOrders(realtimeOrders);
+        setIsSyncing(false);
+      },
+      (err) => {
+        console.error('Error in realtime orders subscription:', err);
+        setIsSyncing(false);
+      }
     );
-    setSelectedOrderForEdit(null);
-    setActiveScreen('data_pesanan');
-  };
 
-  // Handler: Delete order
-  const handleDeleteOrder = (orderId: string) => {
-    setOrders((prev) => prev.filter((o) => o.id !== orderId));
-    if (selectedOrderForEdit?.id === orderId) {
-      setSelectedOrderForEdit(null);
-      setActiveScreen('data_pesanan');
+    // 2. Subscribe to preferences (prices and phone) in real-time
+    const unsubscribePrefs = subscribeToPreferences(
+      (realtimePrefs) => {
+        setPreferences(realtimePrefs);
+      },
+      (err) => {
+        console.error('Error in realtime prefs subscription:', err);
+      }
+    );
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribePrefs();
+    };
+  }, []);
+
+  // Keep selectedOrderForReceipt in sync if it is updated remotely by another device
+  useEffect(() => {
+    if (selectedOrderForReceipt) {
+      const updated = orders.find((o) => o.id === selectedOrderForReceipt.id);
+      if (updated) {
+        setSelectedOrderForReceipt(updated);
+      }
+    }
+  }, [orders, selectedOrderForReceipt?.id]);
+
+  // Handler: Add new order from Gambar 1 (instantly synced to Firestore)
+  const handleSaveNewOrder = async (orderData: Omit<Order, 'id' | 'createdAt'>) => {
+    try {
+      setIsSyncing(true);
+      await createOrderInFirestore(orderData);
+    } catch (err) {
+      console.error('Failed to create order in Firestore:', err);
+      // Local optimistic fallback
+      const fallback: Order = {
+        ...orderData,
+        id: `ord-${Date.now().toString(36)}`,
+        createdAt: Date.now(),
+      };
+      setOrders((prev) => [fallback, ...prev]);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
-  // Handler: Save preferences from Gambar 2
-  const handleSavePreferences = (newPrefs: AppPreferences) => {
-    setPreferences(newPrefs);
+  // Handler: Update order from Gambar 4 (instantly synced to Firestore)
+  const handleUpdateOrder = async (updatedOrder: Order) => {
+    try {
+      setIsSyncing(true);
+      await updateOrderInFirestore(updatedOrder);
+      setSelectedOrderForEdit(null);
+      setActiveScreen('data_pesanan');
+    } catch (err) {
+      console.error('Failed to update order in Firestore:', err);
+      setOrders((prev) =>
+        prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o))
+      );
+      setSelectedOrderForEdit(null);
+      setActiveScreen('data_pesanan');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Handler: Delete order (instantly synced to Firestore)
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      setIsSyncing(true);
+      await deleteOrderInFirestore(orderId);
+      if (selectedOrderForEdit?.id === orderId) {
+        setSelectedOrderForEdit(null);
+        setActiveScreen('data_pesanan');
+      }
+    } catch (err) {
+      console.error('Failed to delete order in Firestore:', err);
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      if (selectedOrderForEdit?.id === orderId) {
+        setSelectedOrderForEdit(null);
+        setActiveScreen('data_pesanan');
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Handler: Save preferences from Gambar 2 (instantly synced to Firestore)
+  const handleSavePreferences = async (newPrefs: AppPreferences) => {
+    try {
+      setIsSyncing(true);
+      await savePreferencesInFirestore(newPrefs);
+      setPreferences(newPrefs);
+    } catch (err) {
+      console.error('Failed to save preferences in Firestore:', err);
+      setPreferences(newPrefs);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // Handler: Trigger edit view (Gambar 4)
@@ -97,19 +179,16 @@ export default function App() {
     setActiveScreen('cetak_nota');
   };
 
-  // Handler: Update payment status from Cetak Nota
-  const handleUpdatePaymentStatus = (orderId: string, status: 'lunas' | 'belum') => {
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id === orderId) {
-          return {
-            ...o,
-            statusPembayaran: status,
-          };
-        }
-        return o;
-      })
-    );
+  // Handler: Update payment status from Cetak Nota (instantly synced to Firestore)
+  const handleUpdatePaymentStatus = async (orderId: string, status: 'lunas' | 'belum') => {
+    try {
+      await updatePaymentStatusInFirestore(orderId, status);
+    } catch (err) {
+      console.error('Failed to update payment status in Firestore:', err);
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, statusPembayaran: status } : o))
+      );
+    }
   };
 
   // Handler: Change reference date
@@ -168,6 +247,7 @@ export default function App() {
             onNavigate={(s) => setActiveScreen(s)}
             referenceDateDisplay={formatIndoDateFull(referenceDate)}
             onChangeDateClick={() => setIsDateModalOpen(true)}
+            isSyncing={isSyncing}
           />
 
           {/* Screen Content */}

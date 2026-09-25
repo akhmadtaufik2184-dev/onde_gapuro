@@ -1,0 +1,6 @@
+{
+  "name": "Onde-Onde GAPURO - Aplikasi Pesanan",
+  "description": "Aplikasi administrasi penjualan onde-onde Gapuro dengan manajemen pesanan, pembagian rombong, preferensi harga, dan nota.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -59,6 +59,7 @@ export const subscribeToOrders = (
           noHp: data.noHp || '',
           pengiriman: data.pengiriman || 'diambil',
           alamatKirim: data.alamatKirim || '',
+          ongkir: data.ongkir || 0,
           rombong: data.rombong || 'rmb1',
           statusPembayaran: data.statusPembayaran || 'belum',
           uangDibayar: data.uangDibayar || 0,

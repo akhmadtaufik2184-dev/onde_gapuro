@@ -25,9 +25,10 @@ export interface Order {
   noHp: string; // no. hp
   pengiriman: DeliveryType; // diambil / dikirim
   alamatKirim: string; // destination text if dikirim
+  ongkir?: number; // ongkos kirim manual saat diantar/dikirim
   rombong: RombongId; // rmb1, rmb2, rmb3, rmb4
   statusPembayaran: PaymentStatus; // lunas / belum
-  uangDibayar?: number; // optional payment amount
+  uangDibayar?: number; // optional payment amount / DP jika belum lunas
   catatan?: string;
   createdAt: number;
 }

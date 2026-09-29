@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ActiveScreen, DeliveryType, Order, PaymentStatus, RombongId } from '../types';
-import { formatIndoDate, parseDateFromRaw, toInputDateFormat } from '../utils/format';
-import { PlusCircle, Check, Sparkles } from 'lucide-react';
+import { formatIndoDate, parseDateFromRaw, toInputDateFormat, formatRupiah, parseNumber } from '../utils/format';
+import { Check, Truck, DollarSign } from 'lucide-react';
 
 interface InputPesananViewProps {
   onSaveOrder: (newOrder: Omit<Order, 'id' | 'createdAt'>) => void;
@@ -36,12 +36,14 @@ export const InputPesananView: React.FC<InputPesananViewProps> = ({
   // Delivery
   const [pengiriman, setPengiriman] = useState<DeliveryType>('diambil');
   const [alamatKirim, setAlamatKirim] = useState<string>('');
+  const [ongkirInput, setOngkirInput] = useState<string>('');
 
   // Rombong
   const [rombong, setRombong] = useState<RombongId>('rmb1');
 
-  // Status
+  // Status Pembayaran & DP
   const [statusPembayaran, setStatusPembayaran] = useState<PaymentStatus>('belum');
+  const [dpInput, setDpInput] = useState<string>('');
 
   // Success Feedback Toast
   const [savedSuccess, setSavedSuccess] = useState<string | null>(null);
@@ -63,7 +65,9 @@ export const InputPesananView: React.FC<InputPesananViewProps> = ({
     setNoHp('');
     setPengiriman('diambil');
     setAlamatKirim('');
+    setOngkirInput('');
     setStatusPembayaran('belum');
+    setDpInput('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -88,6 +92,9 @@ export const InputPesananView: React.FC<InputPesananViewProps> = ({
       return;
     }
 
+    const ongkirVal = pengiriman === 'dikirim' ? parseNumber(ongkirInput) : 0;
+    const dpVal = statusPembayaran === 'belum' ? parseNumber(dpInput) : 0;
+
     onSaveOrder({
       tanggalRaw,
       hariTanggalDisplay: hariTanggalDisplay.trim() || formatIndoDate(parseDateFromRaw(tanggalRaw)),
@@ -104,8 +111,10 @@ export const InputPesananView: React.FC<InputPesananViewProps> = ({
       noHp: noHp.trim(),
       pengiriman,
       alamatKirim: pengiriman === 'dikirim' ? (alamatKirim.trim() || 'ke rumah') : '',
+      ongkir: ongkirVal,
       rombong,
       statusPembayaran,
+      uangDibayar: dpVal,
     });
 
     setSavedSuccess(`Pesanan ${nama} berhasil disimpan!`);
@@ -297,7 +306,7 @@ export const InputPesananView: React.FC<InputPesananViewProps> = ({
             />
           </div>
 
-          {/* Delivery: diambil / dikirim ke */}
+          {/* Delivery: diambil / dikirim (diantar) */}
           <div className="pt-1">
             <div className="flex items-center gap-4 text-xs font-medium text-stone-800">
               <label className="flex items-center gap-1.5 cursor-pointer">
@@ -319,18 +328,46 @@ export const InputPesananView: React.FC<InputPesananViewProps> = ({
                   onChange={() => setPengiriman('dikirim')}
                   className="accent-[#236d4e]"
                 />
-                <span>dikirim ke</span>
+                <span className="font-semibold text-emerald-800 flex items-center gap-1">
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>diantar / dikirim ke</span>
+                </span>
               </label>
             </div>
 
+            {/* Jika diantar/dikirim: Munculkan Alamat Kirim & Ongkos Kirim Manual */}
             {pengiriman === 'dikirim' && (
-              <input
-                type="text"
-                value={alamatKirim}
-                onChange={(e) => setAlamatKirim(e.target.value)}
-                placeholder="alamat / lokasi (contoh: rumah, jl rambutan 15...)"
-                className="mt-1.5 w-full text-xs px-2.5 py-1.5 border border-emerald-500 rounded bg-emerald-50/50 text-stone-900 focus:outline-emerald-600"
-              />
+              <div className="mt-2 p-2.5 bg-emerald-50/70 border border-emerald-300 rounded space-y-2 animate-fade-in">
+                <div>
+                  <label className="block text-[11px] font-semibold text-emerald-950 mb-0.5">
+                    Alamat / Tujuan Pengantaran:
+                  </label>
+                  <input
+                    type="text"
+                    value={alamatKirim}
+                    onChange={(e) => setAlamatKirim(e.target.value)}
+                    placeholder="contoh: Jl. Rambutan No. 15, Magersari..."
+                    className="w-full text-xs px-2.5 py-1.5 border border-emerald-400 rounded bg-white text-stone-900 focus:outline-emerald-600"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-emerald-200">
+                  <label className="text-xs font-bold text-emerald-900 flex items-center gap-1">
+                    <Truck className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Ongkos Kirim (Rp):</span>
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-stone-500 font-mono">Rp</span>
+                    <input
+                      type="text"
+                      value={ongkirInput ? formatRupiah(parseNumber(ongkirInput)) : ''}
+                      onChange={(e) => setOngkirInput(e.target.value)}
+                      placeholder="0"
+                      className="w-28 text-right text-xs font-bold font-mono px-2 py-1 border border-emerald-400 rounded bg-white text-emerald-900 focus:outline-emerald-600"
+                    />
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
@@ -362,43 +399,68 @@ export const InputPesananView: React.FC<InputPesananViewProps> = ({
             </div>
           </div>
 
-          {/* lunas / belum & simpan */}
-          <div className="pt-2 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 text-xs font-semibold text-stone-800">
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="statusPembayaran"
-                  checked={statusPembayaran === 'lunas'}
-                  onChange={() => setStatusPembayaran('lunas')}
-                  className="accent-emerald-700"
-                />
-                <span className={statusPembayaran === 'lunas' ? 'text-emerald-700 font-bold' : ''}>
-                  lunas
-                </span>
-              </label>
+          {/* Status Pembayaran (lunas / belum) & Input DP jika belum lunas */}
+          <div className="pt-2 border-t border-stone-200 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 text-xs font-semibold text-stone-800">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="statusPembayaran"
+                    checked={statusPembayaran === 'lunas'}
+                    onChange={() => {
+                      setStatusPembayaran('lunas');
+                      setDpInput('');
+                    }}
+                    className="accent-emerald-700"
+                  />
+                  <span className={statusPembayaran === 'lunas' ? 'text-emerald-700 font-bold' : ''}>
+                    lunas
+                  </span>
+                </label>
 
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="statusPembayaran"
-                  checked={statusPembayaran === 'belum'}
-                  onChange={() => setStatusPembayaran('belum')}
-                  className="accent-amber-600"
-                />
-                <span className={statusPembayaran === 'belum' ? 'text-amber-700 font-bold' : ''}>
-                  belum
-                </span>
-              </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="statusPembayaran"
+                    checked={statusPembayaran === 'belum'}
+                    onChange={() => setStatusPembayaran('belum')}
+                    className="accent-amber-600"
+                  />
+                  <span className={statusPembayaran === 'belum' ? 'text-amber-700 font-bold' : ''}>
+                    belum lunas
+                  </span>
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                className="px-6 py-2 bg-[#236d4e] hover:bg-[#1b553d] active:bg-[#15422f] text-white font-bold text-sm rounded shadow-sm transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>simpan</span>
+              </button>
             </div>
 
-            <button
-              type="submit"
-              className="px-6 py-2 bg-[#236d4e] hover:bg-[#1b553d] active:bg-[#15422f] text-white font-bold text-sm rounded shadow-sm transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <Check className="w-4 h-4" />
-              <span>simpan</span>
-            </button>
+            {/* Jika belum lunas: Tampilkan field DP (Uang Muka) */}
+            {statusPembayaran === 'belum' && (
+              <div className="p-2 bg-amber-50 border border-amber-300 rounded flex items-center justify-between gap-2 animate-fade-in">
+                <label className="text-xs font-semibold text-amber-900 flex items-center gap-1">
+                  <DollarSign className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Uang Muka / DP (Rp):</span>
+                </label>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-amber-700 font-mono">Rp</span>
+                  <input
+                    type="text"
+                    value={dpInput ? formatRupiah(parseNumber(dpInput)) : ''}
+                    onChange={(e) => setDpInput(e.target.value)}
+                    placeholder="0 (jika ada)"
+                    className="w-28 text-right text-xs font-bold font-mono px-2 py-1 border border-amber-400 rounded bg-white text-stone-900 focus:outline-amber-600"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </form>
       </div>

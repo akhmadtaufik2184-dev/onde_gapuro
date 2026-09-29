@@ -66,7 +66,11 @@ export const getItemsSummary = (items: OrderItems): string => {
   return parts.length > 0 ? parts.join(', ') : '0 item';
 };
 
-export const calculateOrderTotal = (items: OrderItems, prices: Record<ItemKey, number>): number => {
+export const calculateOrderTotal = (
+  items: OrderItems,
+  prices: Record<ItemKey, number>,
+  ongkir: number = 0
+): number => {
   let total = 0;
   total += (items.bijian || 0) * (prices.bijian || 0);
   total += (items.box6 || 0) * (prices.box6 || 0);
@@ -74,6 +78,7 @@ export const calculateOrderTotal = (items: OrderItems, prices: Record<ItemKey, n
   total += (items.box20 || 0) * (prices.box20 || 0);
   total += (items.hantr15 || 0) * (prices.hantr15 || 0);
   total += (items.hantr24 || 0) * (prices.hantr24 || 0);
+  total += (ongkir || 0);
   return total;
 };
 

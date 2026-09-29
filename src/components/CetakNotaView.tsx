@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AppPreferences, Order } from '../types';
 import { calculateOrderTotal, formatRupiah, getOrderBreakdown } from '../utils/format';
-import { Printer, Share2, Copy, Check, ArrowLeft, MessageSquare } from 'lucide-react';
+import { Printer, Share2, Copy, Check, ArrowLeft, MessageSquare, Truck, DollarSign } from 'lucide-react';
 
 interface CetakNotaViewProps {
   order: Order;
@@ -20,7 +20,10 @@ export const CetakNotaView: React.FC<CetakNotaViewProps> = ({
   const [currentStatus, setCurrentStatus] = useState(order.statusPembayaran);
 
   const breakdown = getOrderBreakdown(order.items, preferences.prices);
-  const total = calculateOrderTotal(order.items, preferences.prices);
+  const ongkir = order.pengiriman === 'dikirim' ? (order.ongkir || 0) : 0;
+  const itemsSubtotal = calculateOrderTotal(order.items, preferences.prices, 0);
+  const total = calculateOrderTotal(order.items, preferences.prices, ongkir);
+
   const isLunas = currentStatus === 'lunas';
   const dibayar = isLunas ? total : (order.uangDibayar || 0);
   const kurang = Math.max(0, total - dibayar);
@@ -46,6 +49,9 @@ export const CetakNotaView: React.FC<CetakNotaViewProps> = ({
     text += `Selesai   : ${order.hariTanggalDisplay} ${order.jam}\n`;
     if (order.pengiriman === 'dikirim') {
       text += `Kirim ke  : ${order.alamatKirim || 'ke rumah'}\n`;
+      if (ongkir > 0) {
+        text += `Ongkir    : Rp ${formatRupiah(ongkir)}\n`;
+      }
     } else {
       text += `Status    : Diambil di ${order.rombong}\n`;
     }
@@ -56,9 +62,17 @@ export const CetakNotaView: React.FC<CetakNotaViewProps> = ({
       text += `${item.qty} x ${formatRupiah(item.unitPrice)} = Rp ${formatRupiah(item.subtotal)}\n`;
     });
 
+    if (ongkir > 0) {
+      text += `Ongkos Kirim\n1 x ${formatRupiah(ongkir)} = Rp ${formatRupiah(ongkir)}\n`;
+    }
+
     text += `--------------------------------\n`;
     text += `*Total   : Rp ${formatRupiah(total)}*\n`;
-    text += `Dibayar : Rp ${formatRupiah(dibayar)}\n`;
+    if (!isLunas && dibayar > 0) {
+      text += `DP / Uang Muka : Rp ${formatRupiah(dibayar)}\n`;
+    } else {
+      text += `Dibayar : Rp ${formatRupiah(dibayar)}\n`;
+    }
     text += `--------------------------------\n`;
     text += `*${isLunas ? 'STATUS: LUNAS' : `Kurang  : Rp ${formatRupiah(kurang)} (BELUM LUNAS)`}*\n\n`;
     text += `Terima kasih atas pesanan Anda! 🙏`;
@@ -190,6 +204,21 @@ export const CetakNotaView: React.FC<CetakNotaViewProps> = ({
               </div>
             ))
           )}
+
+          {/* Ongkir Line if applicable */}
+          {ongkir > 0 && (
+            <div className="space-y-0.5 pt-1 border-t border-dashed border-stone-200">
+              <div className="font-semibold text-stone-800 flex items-center gap-1">
+                <span>Ongkos Kirim (Antar)</span>
+              </div>
+              <div className="flex items-center justify-between text-stone-600 pl-2">
+                <span>1 x {formatRupiah(ongkir)}</span>
+                <span className="font-mono text-stone-900 font-medium">
+                  {formatRupiah(ongkir)}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Divider */}
@@ -203,15 +232,15 @@ export const CetakNotaView: React.FC<CetakNotaViewProps> = ({
           </div>
 
           <div className="flex items-center justify-between text-stone-700">
-            <span>Dibayar</span>
-            <span>{formatRupiah(dibayar)}</span>
+            <span>{!isLunas && dibayar > 0 ? 'DP / Uang Muka' : 'Dibayar'}</span>
+            <span className="font-mono font-medium">{formatRupiah(dibayar)}</span>
           </div>
 
           <div className="my-1 border-t border-dashed border-stone-300"></div>
 
           <div className="flex items-center justify-between font-bold text-stone-900">
             <span>Kurang</span>
-            <span className={kurang > 0 ? 'text-amber-800 font-extrabold' : ''}>
+            <span className={kurang > 0 ? 'text-amber-800 font-extrabold font-mono' : 'font-mono'}>
               {formatRupiah(kurang)}
             </span>
           </div>

@@ -43,13 +43,15 @@ export const RombongView: React.FC<RombongViewProps> = ({
 
     for (const order of rombongOrders) {
       const cls = classifyOrderDate(order.tanggalRaw, referenceDate);
-      const orderTotal = calculateOrderTotal(order.items, preferences.prices);
+      const orderTotal = calculateOrderTotal(order.items, preferences.prices, order.ongkir || 0);
+      const dibayar = order.statusPembayaran === 'lunas' ? orderTotal : (order.uangDibayar || 0);
+      const sisaKurang = Math.max(0, orderTotal - dibayar);
 
       if (cls === 'today_or_future') {
         active.push(order);
         totalNom += orderTotal;
         if (order.statusPembayaran !== 'lunas') {
-          unpaidNom += orderTotal;
+          unpaidNom += sisaKurang;
         }
       } else if (cls === 'yesterday') {
         yesterday.push(order);

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Order, ROMBONG_NAMES } from '../types';
-import { getItemsSummary } from '../utils/format';
-import { Edit2, Printer, Trash2, CheckCircle2, Clock } from 'lucide-react';
+import { getItemsSummary, formatRupiah } from '../utils/format';
+import { Edit2, Printer, Trash2, CheckCircle2, Clock, Truck, DollarSign } from 'lucide-react';
 
 interface OrderCardProps {
   order: Order;
@@ -31,6 +31,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       : 'dikirim ke rumah';
 
   const rombongLabel = ROMBONG_NAMES[order.rombong] || order.rombong;
+  const hasOngkir = order.pengiriman === 'dikirim' && (order.ongkir || 0) > 0;
+  const hasDP = !isLunas && (order.uangDibayar || 0) > 0;
 
   // Background and text styling based on whether it is yesterday or active
   const cardBgClass = isYesterday
@@ -79,9 +81,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         {order.nama || 'Tanpa Nama'}
       </div>
 
-      {/* Delivery mode */}
-      <div className={`text-xs mb-0.5 break-words ${metaClass}`}>
-        {deliveryText}
+      {/* Delivery mode & Ongkir Badge */}
+      <div className={`text-xs mb-0.5 break-words ${metaClass} flex flex-wrap items-center gap-1.5`}>
+        <span>{deliveryText}</span>
+        {hasOngkir && (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-600/15 text-emerald-900 border border-emerald-500/30">
+            <Truck className="w-2.5 h-2.5" />
+            <span>Ongkir: Rp {formatRupiah(order.ongkir || 0)}</span>
+          </span>
+        )}
       </div>
 
       {/* Rombong */}
@@ -89,19 +97,28 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         dikerjakan di {rombongLabel}
       </div>
 
-      {/* Payment Status */}
-      <div className={`flex items-center justify-between ${showActions ? 'mb-3' : 'mb-0'}`}>
-        <div className={`text-xs flex items-center gap-1 ${statusBadgeClass}`}>
-          {isLunas ? (
-            <>
-              <CheckCircle2 className={`w-3.5 h-3.5 ${isYesterday ? 'text-stone-400' : 'text-emerald-600'}`} />
-              <span>lunas</span>
-            </>
-          ) : (
-            <>
-              <Clock className={`w-3.5 h-3.5 ${isYesterday ? 'text-stone-400' : 'text-amber-600'}`} />
-              <span>belum lunas</span>
-            </>
+      {/* Payment Status & DP Badge */}
+      <div className={`flex items-center justify-between flex-wrap gap-1 ${showActions ? 'mb-3' : 'mb-0'}`}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className={`text-xs flex items-center gap-1 ${statusBadgeClass}`}>
+            {isLunas ? (
+              <>
+                <CheckCircle2 className={`w-3.5 h-3.5 ${isYesterday ? 'text-stone-400' : 'text-emerald-600'}`} />
+                <span>lunas</span>
+              </>
+            ) : (
+              <>
+                <Clock className={`w-3.5 h-3.5 ${isYesterday ? 'text-stone-400' : 'text-amber-600'}`} />
+                <span>belum lunas</span>
+              </>
+            )}
+          </div>
+
+          {hasDP && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-200/70 text-amber-900 border border-amber-400/50">
+              <DollarSign className="w-2.5 h-2.5" />
+              <span>DP: Rp {formatRupiah(order.uangDibayar || 0)}</span>
+            </span>
           )}
         </div>
 

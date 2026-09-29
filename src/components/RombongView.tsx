@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { ActiveScreen, AppPreferences, Order, RombongId } from '../types';
 import { OrderCard } from './OrderCard';
 import { calculateOrderTotal, classifyOrderDate, formatRupiah } from '../utils/format';
-import { PlusCircle, ShoppingBag, AlertCircle, ArrowLeft, History } from 'lucide-react';
+import { PlusCircle, ShoppingBag, History } from 'lucide-react';
 
 interface RombongViewProps {
   rombongId: RombongId;
@@ -14,6 +14,7 @@ interface RombongViewProps {
   onDeleteOrder: (orderId: string) => void;
   onNavigate: (screen: ActiveScreen) => void;
   onSelectRombong: (rombongId: RombongId) => void;
+  isReadOnly?: boolean; // When true (rombong role), cannot switch rombongs or input orders
 }
 
 export const RombongView: React.FC<RombongViewProps> = ({
@@ -26,6 +27,7 @@ export const RombongView: React.FC<RombongViewProps> = ({
   onDeleteOrder,
   onNavigate,
   onSelectRombong,
+  isReadOnly = false,
 }) => {
   // Filter for this specific rombong
   const rombongOrders = useMemo(() => {
@@ -73,22 +75,31 @@ export const RombongView: React.FC<RombongViewProps> = ({
 
   return (
     <div className="p-3 pb-24 max-w-md mx-auto">
-      {/* Rombong Switcher Tabs */}
-      <div className="flex items-center gap-1.5 p-1 bg-stone-200/80 rounded-lg mb-3 text-xs select-none">
-        {(['rmb1', 'rmb2', 'rmb3', 'rmb4'] as RombongId[]).map((r, idx) => (
-          <button
-            key={r}
-            onClick={() => onSelectRombong(r)}
-            className={`flex-1 py-1.5 rounded-md font-bold text-center transition-all cursor-pointer ${
-              rombongId === r
-                ? 'bg-[#236d4e] text-white shadow-xs'
-                : 'text-stone-700 hover:bg-stone-300/50'
-            }`}
-          >
-            Rombong {idx + 1}
-          </button>
-        ))}
-      </div>
+      {/* Rombong Switcher Tabs: Hanya ditampilkan untuk Admin. Disembunyikan bila role rombong */}
+      {!isReadOnly ? (
+        <div className="flex items-center gap-1.5 p-1 bg-stone-200/80 rounded-lg mb-3 text-xs select-none">
+          {(['rmb1', 'rmb2', 'rmb3', 'rmb4'] as RombongId[]).map((r, idx) => (
+            <button
+              key={r}
+              onClick={() => onSelectRombong(r)}
+              className={`flex-1 py-1.5 rounded-md font-bold text-center transition-all cursor-pointer ${
+                rombongId === r
+                  ? 'bg-[#236d4e] text-white shadow-xs'
+                  : 'text-stone-700 hover:bg-stone-300/50'
+              }`}
+            >
+              Rombong {idx + 1}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-emerald-800 text-white px-3 py-2 rounded-lg mb-3 flex items-center justify-between text-xs font-bold shadow-xs">
+          <span>Kios Rombong {rombongIndex}</span>
+          <span className="text-[10px] bg-emerald-950/60 px-2 py-0.5 rounded text-emerald-200 border border-emerald-400/20 font-medium">
+            Khusus Rombong {rombongIndex}
+          </span>
+        </div>
+      )}
 
       {/* Rombong Summary Stats Card */}
       <div className="bg-white border border-stone-300 rounded-lg p-3 shadow-2xs mb-3 flex items-center justify-between text-xs">
@@ -120,14 +131,16 @@ export const RombongView: React.FC<RombongViewProps> = ({
             Belum ada pesanan untuk Rombong {rombongIndex}
           </p>
           <p className="text-xs text-stone-500 mt-1">
-            Pesanan baru yang ditugaskan ke {rombongId} akan tampil di sini.
+            Pesanan baru yang ditugaskan ke rombong ini akan langsung tampil di sini secara real-time.
           </p>
-          <button
-            onClick={() => onNavigate('input')}
-            className="mt-3 px-4 py-1.5 bg-[#236d4e] text-white text-xs font-semibold rounded-md shadow-xs hover:bg-[#1b553d] transition-colors cursor-pointer"
-          >
-            + Buat Pesanan Baru
-          </button>
+          {!isReadOnly && (
+            <button
+              onClick={() => onNavigate('input')}
+              className="mt-3 px-4 py-1.5 bg-[#236d4e] text-white text-xs font-semibold rounded-md shadow-xs hover:bg-[#1b553d] transition-colors cursor-pointer"
+            >
+              + Buat Pesanan Baru
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -146,7 +159,7 @@ export const RombongView: React.FC<RombongViewProps> = ({
                     isYesterday={false}
                     onEdit={onEditOrder}
                     onPrintReceipt={onPrintReceipt}
-                    onDelete={onDeleteOrder}
+                    onDelete={!isReadOnly ? onDeleteOrder : undefined}
                   />
                 ))}
               </div>
@@ -173,7 +186,7 @@ export const RombongView: React.FC<RombongViewProps> = ({
                     isYesterday={true}
                     onEdit={onEditOrder}
                     onPrintReceipt={onPrintReceipt}
-                    onDelete={onDeleteOrder}
+                    onDelete={!isReadOnly ? onDeleteOrder : undefined}
                   />
                 ))}
               </div>
@@ -182,16 +195,18 @@ export const RombongView: React.FC<RombongViewProps> = ({
         </div>
       )}
 
-      {/* Floating Add Order Button */}
-      <div className="fixed bottom-4 right-4 z-20">
-        <button
-          onClick={() => onNavigate('input')}
-          className="bg-[#236d4e] hover:bg-[#1b553d] active:bg-[#15422f] text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all transform hover:scale-105 cursor-pointer"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>Input Pesanan</span>
-        </button>
-      </div>
+      {/* Floating Add Order Button: HANYA untuk Admin */}
+      {!isReadOnly && (
+        <div className="fixed bottom-4 right-4 z-20">
+          <button
+            onClick={() => onNavigate('input')}
+            className="bg-[#236d4e] hover:bg-[#1b553d] active:bg-[#15422f] text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all transform hover:scale-105 cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Input Pesanan</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

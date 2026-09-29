@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ActiveScreen, AppPreferences, Order, RombongId } from './types';
+import { ActiveScreen, AppPreferences, Order, RombongId, UserRole } from './types';
 import {
   loadOrders,
   loadPreferences,
@@ -23,6 +23,7 @@ import { RombongView } from './components/RombongView';
 import { BottomNavBar } from './components/BottomNavBar';
 import { MockupGuideBar } from './components/MockupGuideBar';
 import { DateReferenceModal } from './components/DateReferenceModal';
+import { PortalLoginView } from './components/PortalLoginView';
 import {
   subscribeToOrders,
   subscribeToPreferences,
@@ -33,10 +34,33 @@ import {
   savePreferencesInFirestore,
 } from './services/orderService';
 
+const PORTAL_AUTH_KEY = 'gapuro_portal_authorized';
+const PORTAL_ROLE_KEY = 'gapuro_portal_role';
+
 export default function App() {
+  // Sesi Login Portal & Role yang sedang aktif
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return sessionStorage.getItem(PORTAL_AUTH_KEY) === 'true';
+  });
+
+  const [userRole, setUserRole] = useState<UserRole>(() => {
+    const savedRole = sessionStorage.getItem(PORTAL_ROLE_KEY);
+    return (savedRole as UserRole) || 'admin';
+  });
+
   const [orders, setOrders] = useState<Order[]>(() => loadOrders());
   const [preferences, setPreferences] = useState<AppPreferences>(() => loadPreferences());
-  const [activeScreen, setActiveScreen] = useState<ActiveScreen>('input');
+  
+  // Tentukan activeScreen berdasarkan role saat pertama kali dimuat
+  const [activeScreen, setActiveScreen] = useState<ActiveScreen>(() => {
+    const savedRole = sessionStorage.getItem(PORTAL_ROLE_KEY) as UserRole | null;
+    if (savedRole === 'rombong 1') return 'rombong1';
+    if (savedRole === 'rombong 2') return 'rombong2';
+    if (savedRole === 'rombong 3') return 'rombong3';
+    if (savedRole === 'rombong 4') return 'rombong4';
+    return 'input';
+  });
+
   const [isSyncing, setIsSyncing] = useState<boolean>(true);
   
   // Specific order states for Edit (Gambar 4) and Cetak Nota (Gambar 5)
@@ -52,8 +76,10 @@ export default function App() {
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
   const [isMobileFrame, setIsMobileFrame] = useState(true);
 
-  // Real-time Firestore subscriptions for cross-device sync
+  // Real-time Firestore subscriptions for cross-device sync (hanya aktif bila terautentikasi)
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     setIsSyncing(true);
 
     // 1. Subscribe to orders in real-time
@@ -82,7 +108,7 @@ export default function App() {
       unsubscribeOrders();
       unsubscribePrefs();
     };
-  }, []);
+  }, [isAuthenticated]);
 
   // Keep selectedOrderForReceipt in sync if it is updated remotely by another device
   useEffect(() => {
@@ -94,6 +120,37 @@ export default function App() {
     }
   }, [orders, selectedOrderForReceipt?.id]);
 
+  // Login handler dengan dukungan role
+  const handleLoginSuccess = (role: UserRole) => {
+    sessionStorage.setItem(PORTAL_AUTH_KEY, 'true');
+    sessionStorage.setItem(PORTAL_ROLE_KEY, role);
+    setUserRole(role);
+    setIsAuthenticated(true);
+
+    // Arahkan ke screen yang sesuai dengan role
+    if (role === 'rombong 1') {
+      setActiveScreen('rombong1');
+    } else if (role === 'rombong 2') {
+      setActiveScreen('rombong2');
+    } else if (role === 'rombong 3') {
+      setActiveScreen('rombong3');
+    } else if (role === 'rombong 4') {
+      setActiveScreen('rombong4');
+    } else {
+      setActiveScreen('input');
+    }
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    if (window.confirm('Keluar dari portal?')) {
+      sessionStorage.removeItem(PORTAL_AUTH_KEY);
+      sessionStorage.removeItem(PORTAL_ROLE_KEY);
+      setIsAuthenticated(false);
+      setUserRole('admin');
+    }
+  };
+
   // Handler: Add new order from Gambar 1 (instantly synced to Firestore)
   const handleSaveNewOrder = async (orderData: Omit<Order, 'id' | 'createdAt'>) => {
     try {
@@ -101,7 +158,6 @@ export default function App() {
       await createOrderInFirestore(orderData);
     } catch (err) {
       console.error('Failed to create order in Firestore:', err);
-      // Local optimistic fallback
       const fallback: Order = {
         ...orderData,
         id: `ord-${Date.now().toString(36)}`,
@@ -119,14 +175,23 @@ export default function App() {
       setIsSyncing(true);
       await updateOrderInFirestore(updatedOrder);
       setSelectedOrderForEdit(null);
-      setActiveScreen('data_pesanan');
+      // Kembali ke screen asal
+      if (userRole === 'rombong 1') setActiveScreen('rombong1');
+      else if (userRole === 'rombong 2') setActiveScreen('rombong2');
+      else if (userRole === 'rombong 3') setActiveScreen('rombong3');
+      else if (userRole === 'rombong 4') setActiveScreen('rombong4');
+      else setActiveScreen('data_pesanan');
     } catch (err) {
       console.error('Failed to update order in Firestore:', err);
       setOrders((prev) =>
         prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o))
       );
       setSelectedOrderForEdit(null);
-      setActiveScreen('data_pesanan');
+      if (userRole.startsWith('rombong')) {
+        setActiveScreen(userRole === 'rombong 1' ? 'rombong1' : userRole === 'rombong 2' ? 'rombong2' : userRole === 'rombong 3' ? 'rombong3' : 'rombong4');
+      } else {
+        setActiveScreen('data_pesanan');
+      }
     } finally {
       setIsSyncing(false);
     }
@@ -139,14 +204,22 @@ export default function App() {
       await deleteOrderInFirestore(orderId);
       if (selectedOrderForEdit?.id === orderId) {
         setSelectedOrderForEdit(null);
-        setActiveScreen('data_pesanan');
+        if (userRole.startsWith('rombong')) {
+          setActiveScreen(userRole === 'rombong 1' ? 'rombong1' : userRole === 'rombong 2' ? 'rombong2' : userRole === 'rombong 3' ? 'rombong3' : 'rombong4');
+        } else {
+          setActiveScreen('data_pesanan');
+        }
       }
     } catch (err) {
       console.error('Failed to delete order in Firestore:', err);
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
       if (selectedOrderForEdit?.id === orderId) {
         setSelectedOrderForEdit(null);
-        setActiveScreen('data_pesanan');
+        if (userRole.startsWith('rombong')) {
+          setActiveScreen(userRole === 'rombong 1' ? 'rombong1' : userRole === 'rombong 2' ? 'rombong2' : userRole === 'rombong 3' ? 'rombong3' : 'rombong4');
+        } else {
+          setActiveScreen('data_pesanan');
+        }
       }
     } finally {
       setIsSyncing(false);
@@ -200,8 +273,9 @@ export default function App() {
     saveReferenceDate(`${y}-${m}-${d}`);
   };
 
-  // Switch between rombong views
+  // Switch between rombong views (hanya untuk Admin)
   const handleSelectRombong = (rombongId: RombongId) => {
+    if (userRole !== 'admin') return;
     switch (rombongId) {
       case 'rmb1':
         setActiveScreen('rombong1');
@@ -218,21 +292,43 @@ export default function App() {
     }
   };
 
-  // Safe fallback if user navigates to edit or receipt with no item selected
+  // Navigation guard untuk mencegah rombong berpindah ke screen admin
+  const handleNavigate = (targetScreen: ActiveScreen) => {
+    if (userRole.startsWith('rombong')) {
+      // Role rombong HANYA boleh mengakses screen rombongnya sendiri, atau edit/cetak nota untuk pesanan rombongnya
+      const allowedScreen =
+        userRole === 'rombong 1' ? 'rombong1' :
+        userRole === 'rombong 2' ? 'rombong2' :
+        userRole === 'rombong 3' ? 'rombong3' : 'rombong4';
+
+      if (targetScreen === 'edit' || targetScreen === 'cetak_nota') {
+        setActiveScreen(targetScreen);
+      } else {
+        setActiveScreen(allowedScreen);
+      }
+      return;
+    }
+
+    setActiveScreen(targetScreen);
+  };
+
+  const isRombongRole = userRole.startsWith('rombong');
   const activeOrderForEdit = selectedOrderForEdit || orders[0];
   const activeOrderForReceipt = selectedOrderForReceipt || orders[0];
 
   return (
     <div className="min-h-screen bg-stone-200/80 flex flex-col font-sans text-stone-900">
-      {/* Top Interactive Schema Guide & Frame Toggle */}
-      <MockupGuideBar
-        activeScreen={activeScreen}
-        onNavigate={(screen) => setActiveScreen(screen)}
-        isMobileFrame={isMobileFrame}
-        onToggleFrame={() => setIsMobileFrame((prev) => !prev)}
-      />
+      {/* Mockup Guide Bar: HANYA untuk Admin */}
+      {isAuthenticated && userRole === 'admin' && (
+        <MockupGuideBar
+          activeScreen={activeScreen}
+          onNavigate={handleNavigate}
+          isMobileFrame={isMobileFrame}
+          onToggleFrame={() => setIsMobileFrame((prev) => !prev)}
+        />
+      )}
 
-      {/* Main Container - Mobile Phone Frame on Desktop or Responsive */}
+      {/* Main Container */}
       <main className="flex-1 flex justify-center items-start sm:py-6 px-0 sm:px-4">
         <div
           className={`w-full bg-[#f4f7f5] min-h-[92vh] flex flex-col relative transition-all ${
@@ -241,130 +337,167 @@ export default function App() {
               : 'max-w-2xl sm:rounded-xl sm:shadow-lg sm:border sm:border-stone-300'
           }`}
         >
-          {/* Header */}
-          <Header
-            activeScreen={activeScreen}
-            onNavigate={(s) => setActiveScreen(s)}
-            referenceDateDisplay={formatIndoDateFull(referenceDate)}
-            onChangeDateClick={() => setIsDateModalOpen(true)}
-            isSyncing={isSyncing}
-          />
-
-          {/* Screen Content */}
-          <div className="flex-1 overflow-y-auto">
-            {activeScreen === 'input' && (
-              <InputPesananView
-                onSaveOrder={handleSaveNewOrder}
-                onNavigate={(s) => setActiveScreen(s)}
-                referenceDate={referenceDate}
+          {/* TAMPILAN JIKA BELUM LOGIN: PORTAL UTAMA DENGAN KODE */}
+          {!isAuthenticated ? (
+            <PortalLoginView onLoginSuccess={handleLoginSuccess} />
+          ) : (
+            <>
+              {/* Header */}
+              <Header
+                activeScreen={activeScreen}
+                onNavigate={handleNavigate}
+                referenceDateDisplay={formatIndoDateFull(referenceDate)}
+                onChangeDateClick={userRole === 'admin' ? () => setIsDateModalOpen(true) : undefined}
+                onLogout={handleLogout}
+                userRole={userRole}
+                isSyncing={isSyncing}
               />
-            )}
 
-            {activeScreen === 'preference' && (
-              <PreferenceView
-                preferences={preferences}
-                onSavePreferences={handleSavePreferences}
-                onBack={() => setActiveScreen('input')}
-              />
-            )}
+              {/* Screen Content */}
+              <div className="flex-1 overflow-y-auto">
+                {/* 1. INPUT PESANAN (Hanya Admin) */}
+                {activeScreen === 'input' && userRole === 'admin' && (
+                  <InputPesananView
+                    onSaveOrder={handleSaveNewOrder}
+                    onNavigate={handleNavigate}
+                    referenceDate={referenceDate}
+                  />
+                )}
 
-            {activeScreen === 'data_pesanan' && (
-              <DataPesananView
-                orders={orders}
-                referenceDate={referenceDate}
-                onEditOrder={handleEditOrder}
-                onPrintReceipt={handlePrintReceipt}
-                onDeleteOrder={handleDeleteOrder}
-                onNavigate={(s) => setActiveScreen(s)}
-              />
-            )}
+                {/* 2. PREFERENCE (Hanya Admin) */}
+                {activeScreen === 'preference' && userRole === 'admin' && (
+                  <PreferenceView
+                    preferences={preferences}
+                    onSavePreferences={handleSavePreferences}
+                    onBack={() => handleNavigate('input')}
+                    onLogout={handleLogout}
+                  />
+                )}
 
-            {activeScreen === 'edit' && activeOrderForEdit && (
-              <EditPesananView
-                order={activeOrderForEdit}
-                onUpdateOrder={handleUpdateOrder}
-                onDeleteOrder={handleDeleteOrder}
-                onBack={() => setActiveScreen('data_pesanan')}
-              />
-            )}
+                {/* 3. DATA PESANAN (Hanya Admin) */}
+                {activeScreen === 'data_pesanan' && userRole === 'admin' && (
+                  <DataPesananView
+                    orders={orders}
+                    referenceDate={referenceDate}
+                    onEditOrder={handleEditOrder}
+                    onPrintReceipt={handlePrintReceipt}
+                    onDeleteOrder={handleDeleteOrder}
+                    onNavigate={handleNavigate}
+                  />
+                )}
 
-            {activeScreen === 'cetak_nota' && activeOrderForReceipt && (
-              <CetakNotaView
-                order={activeOrderForReceipt}
-                preferences={preferences}
-                onBack={() => setActiveScreen('data_pesanan')}
-                onUpdatePaymentStatus={handleUpdatePaymentStatus}
-              />
-            )}
+                {/* 4. EDIT PESANAN */}
+                {activeScreen === 'edit' && activeOrderForEdit && (
+                  <EditPesananView
+                    order={activeOrderForEdit}
+                    onUpdateOrder={handleUpdateOrder}
+                    onDeleteOrder={userRole === 'admin' ? handleDeleteOrder : undefined}
+                    onBack={() => {
+                      if (userRole === 'rombong 1') handleNavigate('rombong1');
+                      else if (userRole === 'rombong 2') handleNavigate('rombong2');
+                      else if (userRole === 'rombong 3') handleNavigate('rombong3');
+                      else if (userRole === 'rombong 4') handleNavigate('rombong4');
+                      else handleNavigate('data_pesanan');
+                    }}
+                  />
+                )}
 
-            {activeScreen === 'rombong1' && (
-              <RombongView
-                rombongId="rmb1"
-                orders={orders}
-                preferences={preferences}
-                referenceDate={referenceDate}
-                onEditOrder={handleEditOrder}
-                onPrintReceipt={handlePrintReceipt}
-                onDeleteOrder={handleDeleteOrder}
-                onNavigate={(s) => setActiveScreen(s)}
-                onSelectRombong={handleSelectRombong}
-              />
-            )}
+                {/* 5. CETAK NOTA */}
+                {activeScreen === 'cetak_nota' && activeOrderForReceipt && (
+                  <CetakNotaView
+                    order={activeOrderForReceipt}
+                    preferences={preferences}
+                    onBack={() => {
+                      if (userRole === 'rombong 1') handleNavigate('rombong1');
+                      else if (userRole === 'rombong 2') handleNavigate('rombong2');
+                      else if (userRole === 'rombong 3') handleNavigate('rombong3');
+                      else if (userRole === 'rombong 4') handleNavigate('rombong4');
+                      else handleNavigate('data_pesanan');
+                    }}
+                    onUpdatePaymentStatus={handleUpdatePaymentStatus}
+                  />
+                )}
 
-            {activeScreen === 'rombong2' && (
-              <RombongView
-                rombongId="rmb2"
-                orders={orders}
-                preferences={preferences}
-                referenceDate={referenceDate}
-                onEditOrder={handleEditOrder}
-                onPrintReceipt={handlePrintReceipt}
-                onDeleteOrder={handleDeleteOrder}
-                onNavigate={(s) => setActiveScreen(s)}
-                onSelectRombong={handleSelectRombong}
-              />
-            )}
+                {/* 6. ROMBONG 1 */}
+                {(activeScreen === 'rombong1' || activeScreen === 'rombong 1') && (userRole === 'admin' || userRole === 'rombong 1') && (
+                  <RombongView
+                    rombongId="rmb1"
+                    orders={orders}
+                    preferences={preferences}
+                    referenceDate={referenceDate}
+                    onEditOrder={handleEditOrder}
+                    onPrintReceipt={handlePrintReceipt}
+                    onDeleteOrder={handleDeleteOrder}
+                    onNavigate={handleNavigate}
+                    onSelectRombong={handleSelectRombong}
+                    isReadOnly={isRombongRole}
+                  />
+                )}
 
-            {activeScreen === 'rombong3' && (
-              <RombongView
-                rombongId="rmb3"
-                orders={orders}
-                preferences={preferences}
-                referenceDate={referenceDate}
-                onEditOrder={handleEditOrder}
-                onPrintReceipt={handlePrintReceipt}
-                onDeleteOrder={handleDeleteOrder}
-                onNavigate={(s) => setActiveScreen(s)}
-                onSelectRombong={handleSelectRombong}
-              />
-            )}
+                {/* 7. ROMBONG 2 */}
+                {(activeScreen === 'rombong2' || activeScreen === 'rombong 2') && (userRole === 'admin' || userRole === 'rombong 2') && (
+                  <RombongView
+                    rombongId="rmb2"
+                    orders={orders}
+                    preferences={preferences}
+                    referenceDate={referenceDate}
+                    onEditOrder={handleEditOrder}
+                    onPrintReceipt={handlePrintReceipt}
+                    onDeleteOrder={handleDeleteOrder}
+                    onNavigate={handleNavigate}
+                    onSelectRombong={handleSelectRombong}
+                    isReadOnly={isRombongRole}
+                  />
+                )}
 
-            {activeScreen === 'rombong4' && (
-              <RombongView
-                rombongId="rmb4"
-                orders={orders}
-                preferences={preferences}
-                referenceDate={referenceDate}
-                onEditOrder={handleEditOrder}
-                onPrintReceipt={handlePrintReceipt}
-                onDeleteOrder={handleDeleteOrder}
-                onNavigate={(s) => setActiveScreen(s)}
-                onSelectRombong={handleSelectRombong}
-              />
-            )}
-          </div>
+                {/* 8. ROMBONG 3 */}
+                {(activeScreen === 'rombong3' || activeScreen === 'rombong 3') && (userRole === 'admin' || userRole === 'rombong 3') && (
+                  <RombongView
+                    rombongId="rmb3"
+                    orders={orders}
+                    preferences={preferences}
+                    referenceDate={referenceDate}
+                    onEditOrder={handleEditOrder}
+                    onPrintReceipt={handlePrintReceipt}
+                    onDeleteOrder={handleDeleteOrder}
+                    onNavigate={handleNavigate}
+                    onSelectRombong={handleSelectRombong}
+                    isReadOnly={isRombongRole}
+                  />
+                )}
 
-          {/* Sticky Mobile Bottom Navigation */}
-          <BottomNavBar
-            activeScreen={activeScreen}
-            onNavigate={(s) => setActiveScreen(s)}
-            orderCount={orders.length}
-          />
+                {/* 9. ROMBONG 4 */}
+                {(activeScreen === 'rombong4' || activeScreen === 'rombong 4') && (userRole === 'admin' || userRole === 'rombong 4') && (
+                  <RombongView
+                    rombongId="rmb4"
+                    orders={orders}
+                    preferences={preferences}
+                    referenceDate={referenceDate}
+                    onEditOrder={handleEditOrder}
+                    onPrintReceipt={handlePrintReceipt}
+                    onDeleteOrder={handleDeleteOrder}
+                    onNavigate={handleNavigate}
+                    onSelectRombong={handleSelectRombong}
+                    isReadOnly={isRombongRole}
+                  />
+                )}
+              </div>
+
+              {/* Sticky Mobile Bottom Navigation: HANYA untuk Admin */}
+              {!isRombongRole && (
+                <BottomNavBar
+                  activeScreen={activeScreen}
+                  onNavigate={handleNavigate}
+                  orderCount={orders.length}
+                />
+              )}
+            </>
+          )}
         </div>
       </main>
 
-      {/* Date Reference Modal */}
-      {isDateModalOpen && (
+      {/* Date Reference Modal (Admin only) */}
+      {isDateModalOpen && userRole === 'admin' && (
         <DateReferenceModal
           currentDate={referenceDate}
           onSave={handleChangeReferenceDate}

@@ -1,6 +1,6 @@
 import React from 'react';
-import { ActiveScreen } from '../types';
-import { ArrowLeft, Home, Calendar } from 'lucide-react';
+import { ActiveScreen, UserRole } from '../types';
+import { ArrowLeft, Home, Calendar, LogOut } from 'lucide-react';
 import { PWAInstallButton } from './PWAInstallButton';
 
 interface HeaderProps {
@@ -9,6 +9,8 @@ interface HeaderProps {
   titleOverride?: string;
   referenceDateDisplay?: string;
   onChangeDateClick?: () => void;
+  onLogout?: () => void;
+  userRole?: UserRole;
   isSyncing?: boolean;
 }
 
@@ -18,9 +20,12 @@ export const Header: React.FC<HeaderProps> = ({
   titleOverride,
   referenceDateDisplay,
   onChangeDateClick,
+  onLogout,
+  userRole = 'admin',
   isSyncing = false,
 }) => {
   const isMainScreen = activeScreen === 'input';
+  const isRombongRole = userRole.startsWith('rombong');
 
   const getScreenTitle = () => {
     if (titleOverride) return titleOverride;
@@ -36,12 +41,16 @@ export const Header: React.FC<HeaderProps> = ({
       case 'cetak_nota':
         return 'Preview Nota';
       case 'rombong1':
+      case 'rombong 1':
         return 'Rombong 1';
       case 'rombong2':
+      case 'rombong 2':
         return 'Rombong 2';
       case 'rombong3':
+      case 'rombong 3':
         return 'Rombong 3';
       case 'rombong4':
+      case 'rombong 4':
         return 'Rombong 4';
       default:
         return 'Aplikasi Pesanan\nOnde-onde Gapuro';
@@ -52,10 +61,22 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="bg-[#236d4e] text-white shadow-md select-none sticky top-0 z-30">
       <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          {!isMainScreen && (
+          {/* Back button: Hanya muncul jika bukan main screen dan bukan role rombong yang terkunci di layarnya */}
+          {!isMainScreen && !isRombongRole && (
             <button
               onClick={() => onNavigate('input')}
               aria-label="Kembali ke Beranda"
+              className="p-1.5 -ml-1 rounded-full hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer text-white"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
+
+          {/* Untuk role rombong yang sedang di layar edit/cetak nota, tombol kembali menuju ke layar rombongnya */}
+          {isRombongRole && (activeScreen === 'edit' || activeScreen === 'cetak_nota') && (
+            <button
+              onClick={() => onNavigate(userRole as ActiveScreen)}
+              aria-label="Kembali ke Rombong"
               className="p-1.5 -ml-1 rounded-full hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer text-white"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -86,9 +107,29 @@ export const Header: React.FC<HeaderProps> = ({
                 </p>
               </div>
             ) : (
-              <h1 className="text-lg font-bold tracking-wide capitalize text-white">
-                {getScreenTitle()}
-              </h1>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-lg font-bold tracking-wide capitalize text-white">
+                    {getScreenTitle()}
+                  </h1>
+                  <span
+                    className={`inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${
+                      isSyncing
+                        ? 'bg-amber-400 text-amber-950 animate-pulse'
+                        : 'bg-emerald-400/25 text-emerald-200 border border-emerald-300/30'
+                    }`}
+                    title={isSyncing ? 'Menyinkronkan data...' : 'Realtime Sync Aktif'}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping"></span>
+                    <span>Realtime</span>
+                  </span>
+                </div>
+                {isRombongRole && (
+                  <p className="text-[11px] font-medium text-emerald-200">
+                    Akses Khusus: {userRole.toUpperCase()}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -98,7 +139,8 @@ export const Header: React.FC<HeaderProps> = ({
           {/* PWA Install Button: Automatically hides when app is installed */}
           <PWAInstallButton variant="header-button" />
 
-          {!isMainScreen && (
+          {/* Home button only for admin */}
+          {!isMainScreen && !isRombongRole && (
             <button
               onClick={() => onNavigate('input')}
               title="Menu Utama"
@@ -115,6 +157,16 @@ export const Header: React.FC<HeaderProps> = ({
               className="p-1.5 rounded-lg hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer text-emerald-100 flex items-center gap-1 text-xs"
             >
               <Calendar className="w-4 h-4" />
+            </button>
+          )}
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              title="Kunci / Keluar ke Portal Login"
+              className="p-1.5 rounded-lg hover:bg-red-500/20 active:bg-red-500/40 text-emerald-200 hover:text-red-200 transition-colors cursor-pointer flex items-center gap-1 text-xs"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           )}
         </div>

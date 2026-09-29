@@ -13,6 +13,8 @@ export type RombongId = 'rmb1' | 'rmb2' | 'rmb3' | 'rmb4';
 export type DeliveryType = 'diambil' | 'dikirim';
 export type PaymentStatus = 'lunas' | 'belum';
 
+export type UserRole = 'admin' | 'rombong 1' | 'rombong 2' | 'rombong 3' | 'rombong 4';
+
 export interface Order {
   id: string;
   tanggalRaw: string; // YYYY-MM-DD
@@ -42,9 +44,13 @@ export type ActiveScreen =
   | 'edit'         // gambar 4
   | 'cetak_nota'   // gambar 5
   | 'rombong1'     // gambar 6
+  | 'rombong 1'    // alias
   | 'rombong2'     // gambar 7
+  | 'rombong 2'    // alias
   | 'rombong3'     // gambar 8
-  | 'rombong4';    // gambar 9
+  | 'rombong 3'    // alias
+  | 'rombong4'     // gambar 9
+  | 'rombong 4';   // alias
 
 export const ITEM_LABELS: Record<ItemKey, string> = {
   bijian: 'bijian',

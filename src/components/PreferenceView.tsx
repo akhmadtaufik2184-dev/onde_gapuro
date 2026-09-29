@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AppPreferences, ItemKey } from '../types';
 import { formatRupiah, parseNumber } from '../utils/format';
-import { Check, RotateCcw, ArrowLeft, Phone, Tag } from 'lucide-react';
+import { Check, RotateCcw, ArrowLeft, Phone, Tag, LogOut, Shield } from 'lucide-react';
 import { DEFAULT_PREFERENCES } from '../utils/storage';
 import { PWAInstallButton } from './PWAInstallButton';
 
@@ -9,12 +9,14 @@ interface PreferenceViewProps {
   preferences: AppPreferences;
   onSavePreferences: (prefs: AppPreferences) => void;
   onBack: () => void;
+  onLogout?: () => void;
 }
 
 export const PreferenceView: React.FC<PreferenceViewProps> = ({
   preferences,
   onSavePreferences,
   onBack,
+  onLogout,
 }) => {
   const [telp, setTelp] = useState(preferences.telp || '');
   const [prices, setPrices] = useState({ ...preferences.prices });
@@ -142,6 +144,26 @@ export const PreferenceView: React.FC<PreferenceViewProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Sesi Portal / Logout */}
+      {onLogout && (
+        <div className="bg-stone-50 border border-stone-200 rounded-lg p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-emerald-700" />
+            <div>
+              <div className="text-xs font-bold text-stone-800">Sesi Portal Masuk</div>
+              <div className="text-[11px] text-stone-500">Masuk sebagai Pengelola (admin)</div>
+            </div>
+          </div>
+          <button
+            onClick={onLogout}
+            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Keluar</span>
+          </button>
+        </div>
+      )}
 
       {/* Back button */}
       <button

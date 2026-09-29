@@ -6,7 +6,7 @@ import { Check, ArrowLeft, Trash2 } from 'lucide-react';
 interface EditPesananViewProps {
   order: Order;
   onUpdateOrder: (updatedOrder: Order) => void;
-  onDeleteOrder: (orderId: string) => void;
+  onDeleteOrder?: (orderId: string) => void;
   onBack: () => void;
 }
 
@@ -95,7 +95,7 @@ export const EditPesananView: React.FC<EditPesananViewProps> = ({
   };
 
   const handleDelete = () => {
-    if (window.confirm(`Yakin ingin menghapus pesanan atas nama "${order.nama}"?`)) {
+    if (onDeleteOrder && window.confirm(`Yakin ingin menghapus pesanan atas nama "${order.nama}"?`)) {
       onDeleteOrder(order.id);
       onBack();
     }
@@ -115,14 +115,18 @@ export const EditPesananView: React.FC<EditPesananViewProps> = ({
             <ArrowLeft className="w-4 h-4" />
           </button>
           <span>edit pemesanan</span>
-          <button
-            type="button"
-            onClick={handleDelete}
-            title="Hapus pesanan"
-            className="p-1 rounded text-red-500 hover:text-red-700 transition-colors cursor-pointer"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {onDeleteOrder ? (
+            <button
+              type="button"
+              onClick={handleDelete}
+              title="Hapus pesanan"
+              className="p-1 rounded text-red-500 hover:text-red-700 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          ) : (
+            <div className="w-6" />
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="p-3.5 space-y-3 text-sm">

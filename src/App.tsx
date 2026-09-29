@@ -38,13 +38,13 @@ const PORTAL_AUTH_KEY = 'gapuro_portal_authorized';
 const PORTAL_ROLE_KEY = 'gapuro_portal_role';
 
 export default function App() {
-  // Sesi Login Portal & Role yang sedang aktif
+  // Sesi Login Portal & Role tersimpan permanen di perangkat (localStorage)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem(PORTAL_AUTH_KEY) === 'true';
+    return localStorage.getItem(PORTAL_AUTH_KEY) === 'true';
   });
 
   const [userRole, setUserRole] = useState<UserRole>(() => {
-    const savedRole = sessionStorage.getItem(PORTAL_ROLE_KEY);
+    const savedRole = localStorage.getItem(PORTAL_ROLE_KEY);
     return (savedRole as UserRole) || 'admin';
   });
 
@@ -53,7 +53,7 @@ export default function App() {
   
   // Tentukan activeScreen berdasarkan role saat pertama kali dimuat
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>(() => {
-    const savedRole = sessionStorage.getItem(PORTAL_ROLE_KEY) as UserRole | null;
+    const savedRole = localStorage.getItem(PORTAL_ROLE_KEY) as UserRole | null;
     if (savedRole === 'rombong 1') return 'rombong1';
     if (savedRole === 'rombong 2') return 'rombong2';
     if (savedRole === 'rombong 3') return 'rombong3';
@@ -120,10 +120,10 @@ export default function App() {
     }
   }, [orders, selectedOrderForReceipt?.id]);
 
-  // Login handler dengan dukungan role
+  // Login handler dengan dukungan role (disimpan permanen di localStorage)
   const handleLoginSuccess = (role: UserRole) => {
-    sessionStorage.setItem(PORTAL_AUTH_KEY, 'true');
-    sessionStorage.setItem(PORTAL_ROLE_KEY, role);
+    localStorage.setItem(PORTAL_AUTH_KEY, 'true');
+    localStorage.setItem(PORTAL_ROLE_KEY, role);
     setUserRole(role);
     setIsAuthenticated(true);
 
@@ -144,8 +144,8 @@ export default function App() {
   // Logout handler
   const handleLogout = () => {
     if (window.confirm('Keluar dari portal?')) {
-      sessionStorage.removeItem(PORTAL_AUTH_KEY);
-      sessionStorage.removeItem(PORTAL_ROLE_KEY);
+      localStorage.removeItem(PORTAL_AUTH_KEY);
+      localStorage.removeItem(PORTAL_ROLE_KEY);
       setIsAuthenticated(false);
       setUserRole('admin');
     }

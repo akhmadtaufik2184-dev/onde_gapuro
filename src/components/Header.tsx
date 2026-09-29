@@ -61,22 +61,11 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="bg-[#236d4e] text-white shadow-md select-none sticky top-0 z-30">
       <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          {/* Back button: Hanya muncul jika bukan main screen dan bukan role rombong yang terkunci di layarnya */}
+          {/* Back button: Hanya untuk admin saat tidak di main screen */}
           {!isMainScreen && !isRombongRole && (
             <button
               onClick={() => onNavigate('input')}
               aria-label="Kembali ke Beranda"
-              className="p-1.5 -ml-1 rounded-full hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer text-white"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          )}
-
-          {/* Untuk role rombong yang sedang di layar edit/cetak nota, tombol kembali menuju ke layar rombongnya */}
-          {isRombongRole && (activeScreen === 'edit' || activeScreen === 'cetak_nota') && (
-            <button
-              onClick={() => onNavigate(userRole as ActiveScreen)}
-              aria-label="Kembali ke Rombong"
               className="p-1.5 -ml-1 rounded-full hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer text-white"
             >
               <ArrowLeft className="w-5 h-5" />

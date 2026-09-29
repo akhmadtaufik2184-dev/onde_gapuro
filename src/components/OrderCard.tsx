@@ -6,9 +6,10 @@ import { Edit2, Printer, Trash2, CheckCircle2, Clock } from 'lucide-react';
 interface OrderCardProps {
   order: Order;
   isYesterday?: boolean;
-  onEdit: (order: Order) => void;
-  onPrintReceipt: (order: Order) => void;
+  onEdit?: (order: Order) => void;
+  onPrintReceipt?: (order: Order) => void;
   onDelete?: (orderId: string) => void;
+  showActions?: boolean; // When false (rombong role), hides edit, print, and delete buttons
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
@@ -17,6 +18,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   onEdit,
   onPrintReceipt,
   onDelete,
+  showActions = true,
 }) => {
   const itemsText = getItemsSummary(order.items);
   const isLunas = order.statusPembayaran === 'lunas';
@@ -88,7 +90,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       </div>
 
       {/* Payment Status */}
-      <div className="flex items-center justify-between mb-3">
+      <div className={`flex items-center justify-between ${showActions ? 'mb-3' : 'mb-0'}`}>
         <div className={`text-xs flex items-center gap-1 ${statusBadgeClass}`}>
           {isLunas ? (
             <>
@@ -110,40 +112,46 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         )}
       </div>
 
-      {/* Action Buttons: edit, cetak nota */}
-      <div className="pt-2 border-t border-black/10 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onEdit(order)}
-            className={`px-3 py-1 text-xs rounded border transition-colors flex items-center gap-1 cursor-pointer font-medium ${buttonClass}`}
-          >
-            <Edit2 className="w-3 h-3" />
-            <span>edit</span>
-          </button>
+      {/* Action Buttons: edit, cetak nota, hapus (Hanya untuk Admin / showActions = true) */}
+      {showActions && (
+        <div className="pt-2 border-t border-black/10 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <button
+                onClick={() => onEdit(order)}
+                className={`px-3 py-1 text-xs rounded border transition-colors flex items-center gap-1 cursor-pointer font-medium ${buttonClass}`}
+              >
+                <Edit2 className="w-3 h-3" />
+                <span>edit</span>
+              </button>
+            )}
 
-          <button
-            onClick={() => onPrintReceipt(order)}
-            className={`px-3 py-1 text-xs rounded border transition-colors flex items-center gap-1 cursor-pointer font-medium ${buttonClass}`}
-          >
-            <Printer className="w-3 h-3" />
-            <span>cetak nota</span>
-          </button>
+            {onPrintReceipt && (
+              <button
+                onClick={() => onPrintReceipt(order)}
+                className={`px-3 py-1 text-xs rounded border transition-colors flex items-center gap-1 cursor-pointer font-medium ${buttonClass}`}
+              >
+                <Printer className="w-3 h-3" />
+                <span>cetak nota</span>
+              </button>
+            )}
+          </div>
+
+          {onDelete && (
+            <button
+              onClick={() => {
+                if (window.confirm(`Hapus pesanan untuk ${order.nama || 'ini'}?`)) {
+                  onDelete(order.id);
+                }
+              }}
+              title="Hapus pesanan"
+              className="p-1 rounded text-stone-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
-
-        {onDelete && (
-          <button
-            onClick={() => {
-              if (window.confirm(`Hapus pesanan untuk ${order.nama || 'ini'}?`)) {
-                onDelete(order.id);
-              }
-            }}
-            title="Hapus pesanan"
-            className="p-1 rounded text-stone-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 };

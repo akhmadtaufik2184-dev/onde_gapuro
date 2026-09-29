@@ -9,12 +9,12 @@ interface RombongViewProps {
   orders: Order[];
   preferences: AppPreferences;
   referenceDate: Date;
-  onEditOrder: (order: Order) => void;
-  onPrintReceipt: (order: Order) => void;
-  onDeleteOrder: (orderId: string) => void;
+  onEditOrder?: (order: Order) => void;
+  onPrintReceipt?: (order: Order) => void;
+  onDeleteOrder?: (orderId: string) => void;
   onNavigate: (screen: ActiveScreen) => void;
   onSelectRombong: (rombongId: RombongId) => void;
-  isReadOnly?: boolean; // When true (rombong role), cannot switch rombongs or input orders
+  isReadOnly?: boolean; // When true (rombong role), cannot switch rombongs, input orders, edit, or print receipt
 }
 
 export const RombongView: React.FC<RombongViewProps> = ({
@@ -96,7 +96,7 @@ export const RombongView: React.FC<RombongViewProps> = ({
         <div className="bg-emerald-800 text-white px-3 py-2 rounded-lg mb-3 flex items-center justify-between text-xs font-bold shadow-xs">
           <span>Kios Rombong {rombongIndex}</span>
           <span className="text-[10px] bg-emerald-950/60 px-2 py-0.5 rounded text-emerald-200 border border-emerald-400/20 font-medium">
-            Khusus Rombong {rombongIndex}
+            Khusus Antrean Rombong {rombongIndex}
           </span>
         </div>
       )}
@@ -157,9 +157,10 @@ export const RombongView: React.FC<RombongViewProps> = ({
                     key={order.id}
                     order={order}
                     isYesterday={false}
-                    onEdit={onEditOrder}
-                    onPrintReceipt={onPrintReceipt}
+                    onEdit={!isReadOnly ? onEditOrder : undefined}
+                    onPrintReceipt={!isReadOnly ? onPrintReceipt : undefined}
                     onDelete={!isReadOnly ? onDeleteOrder : undefined}
+                    showActions={!isReadOnly}
                   />
                 ))}
               </div>
@@ -184,9 +185,10 @@ export const RombongView: React.FC<RombongViewProps> = ({
                     key={order.id}
                     order={order}
                     isYesterday={true}
-                    onEdit={onEditOrder}
-                    onPrintReceipt={onPrintReceipt}
+                    onEdit={!isReadOnly ? onEditOrder : undefined}
+                    onPrintReceipt={!isReadOnly ? onPrintReceipt : undefined}
                     onDelete={!isReadOnly ? onDeleteOrder : undefined}
+                    showActions={!isReadOnly}
                   />
                 ))}
               </div>

@@ -295,17 +295,13 @@ export default function App() {
   // Navigation guard untuk mencegah rombong berpindah ke screen admin
   const handleNavigate = (targetScreen: ActiveScreen) => {
     if (userRole.startsWith('rombong')) {
-      // Role rombong HANYA boleh mengakses screen rombongnya sendiri, atau edit/cetak nota untuk pesanan rombongnya
+      // Role rombong HANYA boleh mengakses screen rombongnya sendiri. Tidak bisa edit atau cetak nota
       const allowedScreen =
         userRole === 'rombong 1' ? 'rombong1' :
         userRole === 'rombong 2' ? 'rombong2' :
         userRole === 'rombong 3' ? 'rombong3' : 'rombong4';
 
-      if (targetScreen === 'edit' || targetScreen === 'cetak_nota') {
-        setActiveScreen(targetScreen);
-      } else {
-        setActiveScreen(allowedScreen);
-      }
+      setActiveScreen(allowedScreen);
       return;
     }
 
@@ -386,34 +382,22 @@ export default function App() {
                   />
                 )}
 
-                {/* 4. EDIT PESANAN */}
-                {activeScreen === 'edit' && activeOrderForEdit && (
+                {/* 4. EDIT PESANAN (Hanya Admin) */}
+                {activeScreen === 'edit' && userRole === 'admin' && activeOrderForEdit && (
                   <EditPesananView
                     order={activeOrderForEdit}
                     onUpdateOrder={handleUpdateOrder}
-                    onDeleteOrder={userRole === 'admin' ? handleDeleteOrder : undefined}
-                    onBack={() => {
-                      if (userRole === 'rombong 1') handleNavigate('rombong1');
-                      else if (userRole === 'rombong 2') handleNavigate('rombong2');
-                      else if (userRole === 'rombong 3') handleNavigate('rombong3');
-                      else if (userRole === 'rombong 4') handleNavigate('rombong4');
-                      else handleNavigate('data_pesanan');
-                    }}
+                    onDeleteOrder={handleDeleteOrder}
+                    onBack={() => handleNavigate('data_pesanan')}
                   />
                 )}
 
-                {/* 5. CETAK NOTA */}
-                {activeScreen === 'cetak_nota' && activeOrderForReceipt && (
+                {/* 5. CETAK NOTA (Hanya Admin) */}
+                {activeScreen === 'cetak_nota' && userRole === 'admin' && activeOrderForReceipt && (
                   <CetakNotaView
                     order={activeOrderForReceipt}
                     preferences={preferences}
-                    onBack={() => {
-                      if (userRole === 'rombong 1') handleNavigate('rombong1');
-                      else if (userRole === 'rombong 2') handleNavigate('rombong2');
-                      else if (userRole === 'rombong 3') handleNavigate('rombong3');
-                      else if (userRole === 'rombong 4') handleNavigate('rombong4');
-                      else handleNavigate('data_pesanan');
-                    }}
+                    onBack={() => handleNavigate('data_pesanan')}
                     onUpdatePaymentStatus={handleUpdatePaymentStatus}
                   />
                 )}

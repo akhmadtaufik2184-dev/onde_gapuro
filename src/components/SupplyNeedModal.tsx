@@ -123,13 +123,20 @@ export const SupplyNeedModal: React.FC<SupplyNeedModalProps> = ({
   };
 
   const quickItems = [
-    'Wijen Putih',
-    'Kacang Hijau Kupas',
-    'Gula Pasir',
-    'Minyak Goreng',
-    'Kotak Box 10',
-    'Kotak Box 6',
-    'Mika Hantaran',
+    'Cup',
+    'Opp',
+    'Kresek kecil',
+    'Kresek box 6',
+    'Kresek box 10',
+    'Kresek 35',
+    'Kresek merah',
+    'Stiker',
+    'Kertas minyak',
+    'Tissu',
+    'Sarung tangan',
+    'Kacang ijo',
+    'Minyak',
+    'Gula',
   ];
 
   const allRombongs: RombongId[] = ['rmb1', 'rmb2', 'rmb3', 'rmb4'];

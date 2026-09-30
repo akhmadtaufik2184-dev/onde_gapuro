@@ -211,7 +211,6 @@ export const subscribeToSupplyNeeds = (
           rombong: data.rombong,
           rombongName: data.rombongName || `Rombong ${data.rombong?.replace('rmb', '') || ''}`,
           kebutuhan: data.kebutuhan || '',
-          catatan: data.catatan || '',
           updatedAt: data.updatedAt || Date.now(),
           updatedBy: data.updatedBy || '',
           targetDate: data.targetDate || '',

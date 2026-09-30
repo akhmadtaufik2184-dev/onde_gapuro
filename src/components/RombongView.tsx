@@ -150,10 +150,7 @@ export const RombongView: React.FC<RombongViewProps> = ({
 
         {hasActiveNeed && supplyNeed ? (
           <div className="bg-white/90 border border-amber-200 rounded p-2 text-stone-800 font-medium space-y-1">
-            <div className="text-stone-900 leading-relaxed font-semibold">{supplyNeed.kebutuhan}</div>
-            {supplyNeed.catatan && (
-              <div className="text-[11px] text-stone-500 italic">Catatan: {supplyNeed.catatan}</div>
-            )}
+            <div className="text-stone-900 leading-relaxed font-semibold whitespace-pre-wrap">{supplyNeed.kebutuhan}</div>
             <div className="text-[10px] text-amber-800 pt-1 border-t border-amber-100 flex items-center justify-between">
               <span>Diisi: {new Date(supplyNeed.updatedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
               <span className="text-stone-500">Auto reset jam 09:00</span>

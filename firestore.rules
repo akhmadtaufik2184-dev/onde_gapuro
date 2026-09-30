@@ -11,6 +11,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Supply needs collection for Rombong 1-4 and Admin
+    match /supply_needs/{needId} {
+      allow read, write: if true;
+    }
+
     // System settings (e.g. active simulated reference date if shared)
     match /settings/{settingId} {
       allow read, write: if true;

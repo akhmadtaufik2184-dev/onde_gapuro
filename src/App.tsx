@@ -8,6 +8,8 @@ import { ActiveScreen, AppPreferences, Order, RombongId, UserRole, SupplyNeed } 
 import {
   loadOrders,
   loadPreferences,
+  loadLocalSupplyNeeds,
+  saveLocalSupplyNeeds,
   getSavedReferenceDate,
   saveReferenceDate,
   DEFAULT_PREFERENCES,
@@ -81,8 +83,37 @@ export default function App() {
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isSupplyModalOpen, setIsSupplyModalOpen] = useState(false);
-  const [supplyNeeds, setSupplyNeeds] = useState<SupplyNeed[]>([]);
+  const [selectedSupplyRombongId, setSelectedSupplyRombongId] = useState<RombongId>('rmb1');
+  const [supplyNeeds, setSupplyNeeds] = useState<SupplyNeed[]>(() => {
+    return loadLocalSupplyNeeds();
+  });
   const [isMobileFrame, setIsMobileFrame] = useState(true);
+
+  // Helper untuk membuka modal kebutuhan bahan dengan target rombong yang spesifik
+  const handleOpenSupplyNeed = (targetRmb?: RombongId) => {
+    if (targetRmb) {
+      setSelectedSupplyRombongId(targetRmb);
+    } else if (userRole === 'rombong 1') {
+      setSelectedSupplyRombongId('rmb1');
+    } else if (userRole === 'rombong 2') {
+      setSelectedSupplyRombongId('rmb2');
+    } else if (userRole === 'rombong 3') {
+      setSelectedSupplyRombongId('rmb3');
+    } else if (userRole === 'rombong 4') {
+      setSelectedSupplyRombongId('rmb4');
+    } else if (activeScreen === 'rombong1' || activeScreen === 'rombong 1') {
+      setSelectedSupplyRombongId('rmb1');
+    } else if (activeScreen === 'rombong2' || activeScreen === 'rombong 2') {
+      setSelectedSupplyRombongId('rmb2');
+    } else if (activeScreen === 'rombong3' || activeScreen === 'rombong 3') {
+      setSelectedSupplyRombongId('rmb3');
+    } else if (activeScreen === 'rombong4' || activeScreen === 'rombong 4') {
+      setSelectedSupplyRombongId('rmb4');
+    } else {
+      setSelectedSupplyRombongId('rmb1');
+    }
+    setIsSupplyModalOpen(true);
+  };
 
   // Real-time Firestore subscriptions for cross-device sync (hanya aktif bila terautentikasi)
   useEffect(() => {
@@ -116,6 +147,7 @@ export default function App() {
     const unsubscribeSupply = subscribeToSupplyNeeds(
       (realtimeNeeds) => {
         setSupplyNeeds(realtimeNeeds);
+        saveLocalSupplyNeeds(realtimeNeeds);
       },
       (err) => {
         console.error('Error in realtime supply needs subscription:', err);
@@ -256,10 +288,19 @@ export default function App() {
       await saveSupplyNeedInFirestore(need);
       setSupplyNeeds((prev) => {
         const filtered = prev.filter((n) => n.id !== need.id);
-        return [...filtered, need];
+        const updated = [...filtered, need];
+        saveLocalSupplyNeeds(updated);
+        return updated;
       });
     } catch (err) {
-      console.error('Failed to save supply need:', err);
+      console.error('Failed to save supply need to Firestore:', err);
+      // Fallback local update
+      setSupplyNeeds((prev) => {
+        const filtered = prev.filter((n) => n.id !== need.id);
+        const updated = [...filtered, need];
+        saveLocalSupplyNeeds(updated);
+        return updated;
+      });
     } finally {
       setIsSyncing(false);
     }
@@ -270,9 +311,18 @@ export default function App() {
     try {
       setIsSyncing(true);
       await clearSupplyNeedInFirestore(rombongId);
-      setSupplyNeeds((prev) => prev.filter((n) => n.id !== rombongId));
+      setSupplyNeeds((prev) => {
+        const updated = prev.filter((n) => n.id !== rombongId);
+        saveLocalSupplyNeeds(updated);
+        return updated;
+      });
     } catch (err) {
       console.error('Failed to clear supply need:', err);
+      setSupplyNeeds((prev) => {
+        const updated = prev.filter((n) => n.id !== rombongId);
+        saveLocalSupplyNeeds(updated);
+        return updated;
+      });
     } finally {
       setIsSyncing(false);
     }
@@ -396,7 +446,7 @@ export default function App() {
                 onNavigate={handleNavigate}
                 referenceDateDisplay={formatIndoDateFull(referenceDate)}
                 onChangeDateClick={userRole === 'admin' ? () => setIsDateModalOpen(true) : undefined}
-                onOpenSupplyNeed={() => setIsSupplyModalOpen(true)}
+                onOpenSupplyNeed={() => handleOpenSupplyNeed()}
                 activeSupplyCount={supplyNeeds.filter((n) => isSupplyNeedValid(n)).length}
                 onLogout={handleLogout}
                 userRole={userRole}
@@ -411,6 +461,8 @@ export default function App() {
                     onSaveOrder={handleSaveNewOrder}
                     onNavigate={handleNavigate}
                     referenceDate={referenceDate}
+                    onOpenSupplyNeed={() => handleOpenSupplyNeed('rmb1')}
+                    activeSupplyCount={supplyNeeds.filter((n) => isSupplyNeedValid(n)).length}
                   />
                 )}
 
@@ -469,7 +521,7 @@ export default function App() {
                     onNavigate={handleNavigate}
                     onSelectRombong={handleSelectRombong}
                     isReadOnly={isRombongRole}
-                    onOpenSupplyNeed={() => setIsSupplyModalOpen(true)}
+                    onOpenSupplyNeed={() => handleOpenSupplyNeed('rmb1')}
                     supplyNeed={supplyNeeds.find((n) => n.rombong === 'rmb1')}
                   />
                 )}
@@ -487,7 +539,7 @@ export default function App() {
                     onNavigate={handleNavigate}
                     onSelectRombong={handleSelectRombong}
                     isReadOnly={isRombongRole}
-                    onOpenSupplyNeed={() => setIsSupplyModalOpen(true)}
+                    onOpenSupplyNeed={() => handleOpenSupplyNeed('rmb2')}
                     supplyNeed={supplyNeeds.find((n) => n.rombong === 'rmb2')}
                   />
                 )}
@@ -505,7 +557,7 @@ export default function App() {
                     onNavigate={handleNavigate}
                     onSelectRombong={handleSelectRombong}
                     isReadOnly={isRombongRole}
-                    onOpenSupplyNeed={() => setIsSupplyModalOpen(true)}
+                    onOpenSupplyNeed={() => handleOpenSupplyNeed('rmb3')}
                     supplyNeed={supplyNeeds.find((n) => n.rombong === 'rmb3')}
                   />
                 )}
@@ -523,7 +575,7 @@ export default function App() {
                     onNavigate={handleNavigate}
                     onSelectRombong={handleSelectRombong}
                     isReadOnly={isRombongRole}
-                    onOpenSupplyNeed={() => setIsSupplyModalOpen(true)}
+                    onOpenSupplyNeed={() => handleOpenSupplyNeed('rmb4')}
                     supplyNeed={supplyNeeds.find((n) => n.rombong === 'rmb4')}
                   />
                 )}
@@ -535,6 +587,8 @@ export default function App() {
                   activeScreen={activeScreen}
                   onNavigate={handleNavigate}
                   orderCount={orders.length}
+                  onOpenSupplyNeed={() => handleOpenSupplyNeed()}
+                  activeSupplyCount={supplyNeeds.filter((n) => isSupplyNeedValid(n)).length}
                 />
               )}
             </>
@@ -564,13 +618,7 @@ export default function App() {
         isOpen={isSupplyModalOpen}
         onClose={() => setIsSupplyModalOpen(false)}
         userRole={userRole}
-        currentRombongId={
-          activeScreen === 'rombong1' || activeScreen === 'rombong 1' ? 'rmb1' :
-          activeScreen === 'rombong2' || activeScreen === 'rombong 2' ? 'rmb2' :
-          activeScreen === 'rombong3' || activeScreen === 'rombong 3' ? 'rmb3' :
-          activeScreen === 'rombong4' || activeScreen === 'rombong 4' ? 'rmb4' :
-          'rmb1'
-        }
+        targetRombongId={selectedSupplyRombongId}
         supplyNeeds={supplyNeeds}
         onSaveNeed={handleSaveSupplyNeed}
         onClearNeed={userRole === 'admin' ? handleClearSupplyNeed : undefined}

@@ -1,17 +1,21 @@
 import React from 'react';
 import { ActiveScreen } from '../types';
-import { PlusCircle, ListOrdered, Settings, Store } from 'lucide-react';
+import { PlusCircle, ListOrdered, Settings, Store, PackagePlus } from 'lucide-react';
 
 interface BottomNavBarProps {
   activeScreen: ActiveScreen;
   onNavigate: (screen: ActiveScreen) => void;
   orderCount: number;
+  onOpenSupplyNeed?: () => void;
+  activeSupplyCount?: number;
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   activeScreen,
   onNavigate,
   orderCount,
+  onOpenSupplyNeed,
+  activeSupplyCount = 0,
 }) => {
   const isRombongActive =
     activeScreen === 'rombong1' ||
@@ -25,7 +29,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
         {/* Input Pesanan (Gambar 1) */}
         <button
           onClick={() => onNavigate('input')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-lg transition-colors cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-colors cursor-pointer ${
             activeScreen === 'input'
               ? 'text-[#236d4e] font-bold'
               : 'text-stone-500 hover:text-stone-900'
@@ -38,7 +42,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
         {/* Data Pesanan (Gambar 3) */}
         <button
           onClick={() => onNavigate('data_pesanan')}
-          className={`relative flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-lg transition-colors cursor-pointer ${
+          className={`relative flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-colors cursor-pointer ${
             activeScreen === 'data_pesanan'
               ? 'text-[#236d4e] font-bold'
               : 'text-stone-500 hover:text-stone-900'
@@ -58,20 +62,38 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
         {/* Rombong View (Gambar 6, 7, 8, 9) */}
         <button
           onClick={() => onNavigate('rombong1')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-lg transition-colors cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-colors cursor-pointer ${
             isRombongActive
               ? 'text-[#236d4e] font-bold'
               : 'text-stone-500 hover:text-stone-900'
           }`}
         >
           <Store className={`w-5 h-5 ${isRombongActive ? 'stroke-[2.5]' : ''}`} />
-          <span>Rombong 1-4</span>
+          <span>Rombong</span>
         </button>
+
+        {/* Menu Kebutuhan Bahan (Admin) */}
+        {onOpenSupplyNeed && (
+          <button
+            onClick={onOpenSupplyNeed}
+            className="relative flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg text-amber-800 hover:text-amber-950 transition-colors cursor-pointer"
+          >
+            <div className="relative">
+              <PackagePlus className="w-5 h-5" />
+              {activeSupplyCount > 0 && (
+                <span className="absolute -top-1 -right-2 bg-amber-600 text-white rounded-full text-[9px] w-4 h-4 flex items-center justify-center font-bold">
+                  {activeSupplyCount}
+                </span>
+              )}
+            </div>
+            <span className="font-semibold">Bahan</span>
+          </button>
+        )}
 
         {/* Preferensi (Gambar 2) */}
         <button
           onClick={() => onNavigate('preference')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-lg transition-colors cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-colors cursor-pointer ${
             activeScreen === 'preference'
               ? 'text-[#236d4e] font-bold'
               : 'text-stone-500 hover:text-stone-900'

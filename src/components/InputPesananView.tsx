@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
 import { ActiveScreen, DeliveryType, Order, PaymentStatus, RombongId } from '../types';
 import { formatIndoDate, parseDateFromRaw, toInputDateFormat, formatRupiah, parseNumber } from '../utils/format';
-import { Check, Truck, DollarSign } from 'lucide-react';
+import { Check, Truck, DollarSign, PackagePlus } from 'lucide-react';
 
 interface InputPesananViewProps {
   onSaveOrder: (newOrder: Omit<Order, 'id' | 'createdAt'>) => void;
   onNavigate: (screen: ActiveScreen) => void;
   referenceDate: Date;
   onViewCreatedReceipt?: (order: Order) => void;
+  onOpenSupplyNeed?: () => void;
+  activeSupplyCount?: number;
 }
 
 export const InputPesananView: React.FC<InputPesananViewProps> = ({
   onSaveOrder,
   onNavigate,
   referenceDate,
+  onOpenSupplyNeed,
+  activeSupplyCount = 0,
 }) => {
   // Initial default date based on referenceDate or today
   const defaultDateStr = toInputDateFormat(referenceDate);
@@ -514,6 +518,22 @@ export const InputPesananView: React.FC<InputPesananViewProps> = ({
             rombong 4
           </button>
         </div>
+
+        {/* Row 4: Kebutuhan Bahan Setiap Rombong */}
+        {onOpenSupplyNeed && (
+          <button
+            onClick={onOpenSupplyNeed}
+            className="w-full py-2.5 px-3 rounded-lg border-2 border-amber-600 text-amber-900 font-bold text-sm bg-amber-50 hover:bg-amber-100 active:bg-amber-200 transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer relative"
+          >
+            <PackagePlus className="w-4 h-4 text-amber-700" />
+            <span>kebutuhan bahan setiap rombong</span>
+            {activeSupplyCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-600 text-white font-bold text-[10px] shadow-xs">
+                {activeSupplyCount} rombong
+              </span>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

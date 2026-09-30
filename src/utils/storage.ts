@@ -1,4 +1,9 @@
-import { AppPreferences, Order } from '../types';
+import { AppPreferences, Order, SupplyNeed } from '../types';
+
+const ORDERS_KEY = 'gapuro_orders_v1';
+const PREFS_KEY = 'gapuro_preferences_v1';
+const DATE_REF_KEY = 'gapuro_reference_date';
+const SUPPLY_NEEDS_KEY = 'gapuro_supply_needs_v1';
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
   telp: '081998765433',
@@ -48,86 +53,101 @@ export const INITIAL_ORDERS: Order[] = [
       hantr15: 0,
       hantr24: 0,
     },
-    nama: 'bagio',
-    noHp: '085712349988',
+    nama: 'Pak Haris',
+    noHp: '082345678902',
     pengiriman: 'diambil',
     alamatKirim: '',
     rombong: 'rmb2',
     statusPembayaran: 'lunas',
-    uangDibayar: 140000,
-    createdAt: 1790766000000,
+    createdAt: 1790758800000,
   },
   {
     id: 'ord-003',
-    tanggalRaw: '2026-09-30',
-    hariTanggalDisplay: 'rabu, 30 Sept 2026',
-    jam: '12:00',
+    tanggalRaw: '2026-09-29',
+    hariTanggalDisplay: 'selasa, 29 Sept 2026',
+    jam: '14:30',
+    items: {
+      bijian: 10,
+      box6: 0,
+      box10: 5,
+      box20: 2,
+      hantr15: 1,
+      hantr24: 0,
+    },
+    nama: 'Ibu Ratna',
+    noHp: '085678901234',
+    pengiriman: 'dikirim',
+    alamatKirim: 'Jl. Merdeka No. 12',
+    rombong: 'rmb3',
+    statusPembayaran: 'lunas',
+    createdAt: 1790672400000,
+  },
+  {
+    id: 'ord-004',
+    tanggalRaw: '2026-09-28',
+    hariTanggalDisplay: 'senin, 28 Sept 2026',
+    jam: '16:00',
     items: {
       bijian: 0,
-      box6: 0,
-      box10: 10,
+      box6: 4,
+      box10: 2,
+      box20: 1,
+      hantr15: 0,
+      hantr24: 1,
+    },
+    nama: 'Mas Doni',
+    noHp: '087890123456',
+    pengiriman: 'diambil',
+    alamatKirim: '',
+    rombong: 'rmb4',
+    statusPembayaran: 'belum',
+    uangDibayar: 50000,
+    createdAt: 1790586000000,
+  },
+  {
+    id: 'ord-005',
+    tanggalRaw: '2026-09-28',
+    hariTanggalDisplay: 'senin, 28 Sept 2026',
+    jam: '10:00',
+    items: {
+      bijian: 0,
+      box6: 5,
+      box10: 0,
       box20: 0,
       hantr15: 0,
       hantr24: 0,
     },
-    nama: 'bambang',
-    noHp: '081399887766',
-    pengiriman: 'dikirim',
-    alamatKirim: 'jl rambutan 15 magersari indah wates',
-    rombong: 'rmb1',
-    statusPembayaran: 'lunas',
-    uangDibayar: 250000,
-    createdAt: 1790769600000,
-  },
-  {
-    id: 'ord-004',
-    tanggalRaw: '2026-10-01',
-    hariTanggalDisplay: 'kamis, 1 okt 2026',
-    jam: '08:00',
-    items: {
-      bijian: 0,
-      box6: 0,
-      box10: 0,
-      box20: 0,
-      hantr15: 0,
-      hantr24: 1,
-    },
-    nama: 'edi',
-    noHp: '087812903456',
+    nama: 'Pak Joko',
+    noHp: '081398765432',
     pengiriman: 'diambil',
     alamatKirim: '',
-    rombong: 'rmb3',
-    statusPembayaran: 'belum',
-    uangDibayar: 0,
-    createdAt: 1790841600000,
+    rombong: 'rmb1',
+    statusPembayaran: 'lunas',
+    createdAt: 1790589600000,
   },
   {
-    id: 'ord-005',
-    tanggalRaw: '2026-09-27',
-    hariTanggalDisplay: 'Minggu, 27 Sept 2026',
+    id: 'ord-006',
+    tanggalRaw: '2026-09-28',
+    hariTanggalDisplay: 'senin, 28 Sept 2026',
     jam: '13:00',
     items: {
       bijian: 0,
       box6: 0,
-      box10: 3,
+      box10: 4,
       box20: 0,
       hantr15: 0,
       hantr24: 0,
     },
-    nama: 'badri',
-    noHp: '082199884433',
-    pengiriman: 'diambil',
-    alamatKirim: '',
+    nama: 'Bu Dewi',
+    noHp: '081234876543',
+    pengiriman: 'dikirim',
+    alamatKirim: 'Kantor BKD',
     rombong: 'rmb1',
-    statusPembayaran: 'lunas',
-    uangDibayar: 75000,
-    createdAt: 1790514000000,
+    statusPembayaran: 'belum',
+    uangDibayar: 0,
+    createdAt: 1790600400000,
   },
 ];
-
-const ORDERS_KEY = 'gapuro_orders_v2';
-const PREFS_KEY = 'gapuro_preferences_v2';
-const DATE_REF_KEY = 'gapuro_simulated_date_v2';
 
 export const loadOrders = (): Order[] => {
   try {
@@ -185,4 +205,22 @@ export const getSavedReferenceDate = (): string => {
 
 export const saveReferenceDate = (dateStr: string): void => {
   localStorage.setItem(DATE_REF_KEY, dateStr);
+};
+
+export const loadLocalSupplyNeeds = (): SupplyNeed[] => {
+  try {
+    const raw = localStorage.getItem(SUPPLY_NEEDS_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) || [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveLocalSupplyNeeds = (needs: SupplyNeed[]): void => {
+  try {
+    localStorage.setItem(SUPPLY_NEEDS_KEY, JSON.stringify(needs));
+  } catch (err) {
+    console.error('Failed to save supply needs to localStorage', err);
+  }
 };

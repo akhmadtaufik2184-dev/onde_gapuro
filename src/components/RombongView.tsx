@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { ActiveScreen, AppPreferences, Order, RombongId } from '../types';
+import { ActiveScreen, AppPreferences, Order, RombongId, SupplyNeed } from '../types';
 import { OrderCard } from './OrderCard';
-import { calculateOrderTotal, classifyOrderDate, formatRupiah } from '../utils/format';
-import { PlusCircle, ShoppingBag, History } from 'lucide-react';
+import { calculateOrderTotal, classifyOrderDate, formatRupiah, isSupplyNeedValid } from '../utils/format';
+import { PlusCircle, ShoppingBag, History, PackagePlus, Sparkles } from 'lucide-react';
 
 interface RombongViewProps {
   rombongId: RombongId;
@@ -15,6 +15,8 @@ interface RombongViewProps {
   onNavigate: (screen: ActiveScreen) => void;
   onSelectRombong: (rombongId: RombongId) => void;
   isReadOnly?: boolean; // When true (rombong role), cannot switch rombongs, input orders, edit, or print receipt
+  onOpenSupplyNeed?: () => void;
+  supplyNeed?: SupplyNeed;
 }
 
 export const RombongView: React.FC<RombongViewProps> = ({
@@ -28,7 +30,11 @@ export const RombongView: React.FC<RombongViewProps> = ({
   onNavigate,
   onSelectRombong,
   isReadOnly = false,
+  onOpenSupplyNeed,
+  supplyNeed,
 }) => {
+  // Check if supply need for this rombong is currently active (before 09:00 reset)
+  const hasActiveNeed = supplyNeed ? isSupplyNeedValid(supplyNeed) : false;
   // Filter for this specific rombong
   const rombongOrders = useMemo(() => {
     return orders.filter((o) => o.rombong === rombongId);
@@ -123,6 +129,49 @@ export const RombongView: React.FC<RombongViewProps> = ({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Card Info Kebutuhan Bahan (Besok) */}
+      <div className="bg-amber-50/80 border border-amber-300 rounded-lg p-3 shadow-2xs mb-3 text-xs">
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1.5 font-bold text-amber-950">
+            <PackagePlus className="w-4 h-4 text-amber-700" />
+            <span>Kebutuhan Bahan Besok:</span>
+          </div>
+          {onOpenSupplyNeed && (
+            <button
+              onClick={onOpenSupplyNeed}
+              className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 underline flex items-center gap-0.5 cursor-pointer"
+            >
+              <span>{hasActiveNeed ? 'Edit / Perbarui' : '+ Tulis Kebutuhan'}</span>
+            </button>
+          )}
+        </div>
+
+        {hasActiveNeed && supplyNeed ? (
+          <div className="bg-white/90 border border-amber-200 rounded p-2 text-stone-800 font-medium space-y-1">
+            <div className="text-stone-900 leading-relaxed font-semibold">{supplyNeed.kebutuhan}</div>
+            {supplyNeed.catatan && (
+              <div className="text-[11px] text-stone-500 italic">Catatan: {supplyNeed.catatan}</div>
+            )}
+            <div className="text-[10px] text-amber-800 pt-1 border-t border-amber-100 flex items-center justify-between">
+              <span>Diisi: {new Date(supplyNeed.updatedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+              <span className="text-stone-500">Auto reset jam 09:00</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between text-stone-500 text-[11px]">
+            <span>Belum ada catatan kebutuhan bahan untuk rombong ini.</span>
+            {onOpenSupplyNeed && (
+              <button
+                onClick={onOpenSupplyNeed}
+                className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-[10px] cursor-pointer"
+              >
+                + Input
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Orders List for this Rombong */}

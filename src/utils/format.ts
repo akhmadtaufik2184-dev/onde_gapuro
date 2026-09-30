@@ -1,4 +1,4 @@
-import { ItemKey, Order, OrderItems } from '../types';
+import { ItemKey, Order, OrderItems, SupplyNeed } from '../types';
 
 export const formatRupiah = (amount: number): string => {
   return new Intl.NumberFormat('id-ID', {
@@ -145,4 +145,34 @@ export const classifyOrderDate = (
   } else {
     return 'expired';
   }
+};
+
+/**
+ * Cek apakah catatan kebutuhan bahan masih aktif atau sudah kedaluwarsa (auto reset pukul 09:00).
+ * Aturan:
+ * Jika kebutuhan diinput untuk besok/hari ini, batas kadaluwarsanya adalah pukul 09:00 pada hari target.
+ * Atau jika dihitung dari waktu input updatedAt:
+ * Batas waktu reset adalah pukul 09:00 berikutnya setelah diinput.
+ * Jika saat ini sudah melewati pukul 09:00 tersebut, catatan otomatis dianggap kedaluwarsa/hilang.
+ */
+export const isSupplyNeedValid = (need: SupplyNeed, now: Date = new Date()): boolean => {
+  if (!need || !need.kebutuhan || !need.kebutuhan.trim()) return false;
+  if (!need.updatedAt) return false;
+
+  const updatedDate = new Date(need.updatedAt);
+  
+  // Tentukan cut-off pukul 09:00
+  // Jika diinput SEBELUM pukul 09:00 pada hari H, cut-off adalah hari H pukul 09:00
+  // Jika diinput SETELAH pukul 09:00 pada hari H (misal sore/malam untuk kebutuhan besok),
+  // cut-off adalah esok harinya (H+1) pukul 09:00
+  const cutOff = new Date(updatedDate);
+  if (updatedDate.getHours() < 9) {
+    cutOff.setHours(9, 0, 0, 0);
+  } else {
+    cutOff.setDate(cutOff.getDate() + 1);
+    cutOff.setHours(9, 0, 0, 0);
+  }
+
+  // Jika waktu sekarang masih sebelum cutoff 09:00, kebutuhan masih valid/aktif
+  return now.getTime() < cutOff.getTime();
 };

@@ -11,12 +11,13 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { AppPreferences, Order } from '../types';
+import { AppPreferences, Order, SupplyNeed } from '../types';
 import { DEFAULT_PREFERENCES, INITIAL_ORDERS } from '../utils/storage';
 
 const ORDERS_COLLECTION = 'orders';
 const PREFS_COLLECTION = 'preferences';
 const PREFS_DOC_ID = 'general';
+const SUPPLY_NEEDS_COLLECTION = 'supply_needs';
 
 /**
  * Real-time listener for orders collection across all devices
@@ -189,3 +190,59 @@ export const seedInitialData = async (): Promise<void> => {
     console.warn('Could not seed initial data:', err);
   }
 };
+
+/**
+ * Real-time listener for Supply Needs (Kebutuhan Bahan dari setiap Rombong)
+ */
+export const subscribeToSupplyNeeds = (
+  onSupplyNeedsUpdated: (needs: SupplyNeed[]) => void,
+  onError?: (err: Error) => void
+) => {
+  const needsRef = collection(db, SUPPLY_NEEDS_COLLECTION);
+
+  return onSnapshot(
+    needsRef,
+    (snapshot) => {
+      const list: SupplyNeed[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        list.push({
+          id: docSnap.id,
+          rombong: data.rombong,
+          rombongName: data.rombongName || `Rombong ${data.rombong?.replace('rmb', '') || ''}`,
+          kebutuhan: data.kebutuhan || '',
+          catatan: data.catatan || '',
+          updatedAt: data.updatedAt || Date.now(),
+          updatedBy: data.updatedBy || '',
+          targetDate: data.targetDate || '',
+        });
+      });
+      onSupplyNeedsUpdated(list);
+    },
+    (error) => {
+      console.error('Realtime supply needs error:', error);
+      if (onError) onError(error);
+    }
+  );
+};
+
+/**
+ * Save / Update Supply Need for a specific rombong
+ */
+export const saveSupplyNeedInFirestore = async (
+  need: SupplyNeed
+): Promise<void> => {
+  const docRef = doc(db, SUPPLY_NEEDS_COLLECTION, need.id);
+  await setDoc(docRef, need, { merge: true });
+};
+
+/**
+ * Clear / Delete Supply Need for a rombong (misal saat reset atau setelah dipenuhi)
+ */
+export const clearSupplyNeedInFirestore = async (
+  rombongId: string
+): Promise<void> => {
+  const docRef = doc(db, SUPPLY_NEEDS_COLLECTION, rombongId);
+  await deleteDoc(docRef);
+};
+

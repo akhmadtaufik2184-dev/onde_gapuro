@@ -33,6 +33,17 @@ export interface Order {
   createdAt: number;
 }
 
+export interface SupplyNeed {
+  id: string; // document id: e.g. "rmb1", "rmb2", "rmb3", "rmb4"
+  rombong: RombongId;
+  rombongName: string; // "Rombong 1", etc.
+  kebutuhan: string; // deskripsi kebutuhan bahan, e.g. "Wijen 2kg, Kacang Ijo 3kg, Tepung Ketan 5 pack"
+  catatan?: string;
+  updatedAt: number; // timestamp ms
+  updatedBy: string; // "Rombong 1" / "Admin"
+  targetDate: string; // YYYY-MM-DD (misal untuk kebutuhan besok)
+}
+
 export interface AppPreferences {
   telp: string;
   prices: Record<ItemKey, number>;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActiveScreen, UserRole } from '../types';
-import { ArrowLeft, Home, Calendar, LogOut } from 'lucide-react';
+import { ArrowLeft, Home, Calendar, LogOut, PackagePlus } from 'lucide-react';
 import { PWAInstallButton } from './PWAInstallButton';
 
 interface HeaderProps {
@@ -10,6 +10,8 @@ interface HeaderProps {
   referenceDateDisplay?: string;
   onChangeDateClick?: () => void;
   onLogout?: () => void;
+  onOpenSupplyNeed?: () => void;
+  activeSupplyCount?: number;
   userRole?: UserRole;
   isSyncing?: boolean;
 }
@@ -21,6 +23,8 @@ export const Header: React.FC<HeaderProps> = ({
   referenceDateDisplay,
   onChangeDateClick,
   onLogout,
+  onOpenSupplyNeed,
+  activeSupplyCount = 0,
   userRole = 'admin',
   isSyncing = false,
 }) => {
@@ -146,6 +150,25 @@ export const Header: React.FC<HeaderProps> = ({
               className="p-1.5 rounded-lg hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer text-emerald-100 flex items-center gap-1 text-xs"
             >
               <Calendar className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Tombol Input Kebutuhan Bahan (di samping tombol keluar ke portal utama) */}
+          {onOpenSupplyNeed && (
+            <button
+              onClick={onOpenSupplyNeed}
+              title={isRombongRole ? "Input Kebutuhan Bahan Besok" : "Lihat Kebutuhan Bahan Rombong"}
+              className="relative p-1.5 rounded-lg hover:bg-white/20 active:bg-white/30 text-amber-200 hover:text-amber-100 transition-all cursor-pointer flex items-center gap-1 text-xs bg-emerald-900/40 border border-emerald-400/30"
+            >
+              <PackagePlus className="w-4 h-4 text-amber-300" />
+              <span className="hidden sm:inline text-[11px] font-semibold text-white">
+                {isRombongRole ? 'Kebutuhan Bahan' : 'Bahan'}
+              </span>
+              {activeSupplyCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-amber-500 text-stone-950 font-bold text-[9px] flex items-center justify-center border border-white shadow-xs">
+                  {activeSupplyCount}
+                </span>
+              )}
             </button>
           )}
 

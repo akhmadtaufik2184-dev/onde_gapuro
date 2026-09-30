@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ActiveScreen, AppPreferences, Order, RombongId, UserRole } from './types';
+import { ActiveScreen, AppPreferences, Order, RombongId, UserRole, SupplyNeed } from './types';
 import {
   loadOrders,
   loadPreferences,
@@ -12,7 +12,7 @@ import {
   saveReferenceDate,
   DEFAULT_PREFERENCES,
 } from './utils/storage';
-import { formatIndoDateFull, parseDateFromRaw } from './utils/format';
+import { formatIndoDateFull, parseDateFromRaw, isSupplyNeedValid } from './utils/format';
 import { Header } from './components/Header';
 import { InputPesananView } from './components/InputPesananView';
 import { PreferenceView } from './components/PreferenceView';
@@ -24,14 +24,19 @@ import { BottomNavBar } from './components/BottomNavBar';
 import { MockupGuideBar } from './components/MockupGuideBar';
 import { DateReferenceModal } from './components/DateReferenceModal';
 import { PortalLoginView } from './components/PortalLoginView';
+import { LogoutConfirmModal } from './components/LogoutConfirmModal';
+import { SupplyNeedModal } from './components/SupplyNeedModal';
 import {
   subscribeToOrders,
   subscribeToPreferences,
+  subscribeToSupplyNeeds,
   createOrderInFirestore,
   updateOrderInFirestore,
   deleteOrderInFirestore,
   updatePaymentStatusInFirestore,
   savePreferencesInFirestore,
+  saveSupplyNeedInFirestore,
+  clearSupplyNeedInFirestore,
 } from './services/orderService';
 
 const PORTAL_AUTH_KEY = 'gapuro_portal_authorized';
@@ -74,6 +79,9 @@ export default function App() {
   });
 
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isSupplyModalOpen, setIsSupplyModalOpen] = useState(false);
+  const [supplyNeeds, setSupplyNeeds] = useState<SupplyNeed[]>([]);
   const [isMobileFrame, setIsMobileFrame] = useState(true);
 
   // Real-time Firestore subscriptions for cross-device sync (hanya aktif bila terautentikasi)
@@ -104,9 +112,20 @@ export default function App() {
       }
     );
 
+    // 3. Subscribe to supply needs in real-time (kebutuhan bahan rombong)
+    const unsubscribeSupply = subscribeToSupplyNeeds(
+      (realtimeNeeds) => {
+        setSupplyNeeds(realtimeNeeds);
+      },
+      (err) => {
+        console.error('Error in realtime supply needs subscription:', err);
+      }
+    );
+
     return () => {
       unsubscribeOrders();
       unsubscribePrefs();
+      unsubscribeSupply();
     };
   }, [isAuthenticated]);
 
@@ -141,14 +160,18 @@ export default function App() {
     }
   };
 
-  // Logout handler
+  // Logout handler: Munculkan modal kode konfirmasi keluar
   const handleLogout = () => {
-    if (window.confirm('Keluar dari portal?')) {
-      localStorage.removeItem(PORTAL_AUTH_KEY);
-      localStorage.removeItem(PORTAL_ROLE_KEY);
-      setIsAuthenticated(false);
-      setUserRole('admin');
-    }
+    setIsLogoutModalOpen(true);
+  };
+
+  // Eksekusi keluar portal setelah kode akhmadtaufik84@ diverifikasi benar
+  const handleConfirmLogout = () => {
+    localStorage.removeItem(PORTAL_AUTH_KEY);
+    localStorage.removeItem(PORTAL_ROLE_KEY);
+    setIsAuthenticated(false);
+    setUserRole('admin');
+    setIsLogoutModalOpen(false);
   };
 
   // Handler: Add new order from Gambar 1 (instantly synced to Firestore)
@@ -221,6 +244,35 @@ export default function App() {
           setActiveScreen('data_pesanan');
         }
       }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Handler: Save Supply Need (Kebutuhan Bahan Besok)
+  const handleSaveSupplyNeed = async (need: SupplyNeed) => {
+    try {
+      setIsSyncing(true);
+      await saveSupplyNeedInFirestore(need);
+      setSupplyNeeds((prev) => {
+        const filtered = prev.filter((n) => n.id !== need.id);
+        return [...filtered, need];
+      });
+    } catch (err) {
+      console.error('Failed to save supply need:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Handler: Clear / Delete Supply Need (Hapus / Reset Manual jika diperlukan)
+  const handleClearSupplyNeed = async (rombongId: string) => {
+    try {
+      setIsSyncing(true);
+      await clearSupplyNeedInFirestore(rombongId);
+      setSupplyNeeds((prev) => prev.filter((n) => n.id !== rombongId));
+    } catch (err) {
+      console.error('Failed to clear supply need:', err);
     } finally {
       setIsSyncing(false);
     }
@@ -344,6 +396,8 @@ export default function App() {
                 onNavigate={handleNavigate}
                 referenceDateDisplay={formatIndoDateFull(referenceDate)}
                 onChangeDateClick={userRole === 'admin' ? () => setIsDateModalOpen(true) : undefined}
+                onOpenSupplyNeed={() => setIsSupplyModalOpen(true)}
+                activeSupplyCount={supplyNeeds.filter((n) => isSupplyNeedValid(n)).length}
                 onLogout={handleLogout}
                 userRole={userRole}
                 isSyncing={isSyncing}
@@ -415,6 +469,8 @@ export default function App() {
                     onNavigate={handleNavigate}
                     onSelectRombong={handleSelectRombong}
                     isReadOnly={isRombongRole}
+                    onOpenSupplyNeed={() => setIsSupplyModalOpen(true)}
+                    supplyNeed={supplyNeeds.find((n) => n.rombong === 'rmb1')}
                   />
                 )}
 
@@ -431,6 +487,8 @@ export default function App() {
                     onNavigate={handleNavigate}
                     onSelectRombong={handleSelectRombong}
                     isReadOnly={isRombongRole}
+                    onOpenSupplyNeed={() => setIsSupplyModalOpen(true)}
+                    supplyNeed={supplyNeeds.find((n) => n.rombong === 'rmb2')}
                   />
                 )}
 
@@ -447,6 +505,8 @@ export default function App() {
                     onNavigate={handleNavigate}
                     onSelectRombong={handleSelectRombong}
                     isReadOnly={isRombongRole}
+                    onOpenSupplyNeed={() => setIsSupplyModalOpen(true)}
+                    supplyNeed={supplyNeeds.find((n) => n.rombong === 'rmb3')}
                   />
                 )}
 
@@ -463,6 +523,8 @@ export default function App() {
                     onNavigate={handleNavigate}
                     onSelectRombong={handleSelectRombong}
                     isReadOnly={isRombongRole}
+                    onOpenSupplyNeed={() => setIsSupplyModalOpen(true)}
+                    supplyNeed={supplyNeeds.find((n) => n.rombong === 'rmb4')}
                   />
                 )}
               </div>
@@ -488,6 +550,31 @@ export default function App() {
           onClose={() => setIsDateModalOpen(false)}
         />
       )}
+
+      {/* Logout Security Confirmation Modal (Requires "akhmadtaufik84@") */}
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirmSuccess={handleConfirmLogout}
+        userRole={userRole}
+      />
+
+      {/* Input / View Kebutuhan Bahan Modal (Besok) */}
+      <SupplyNeedModal
+        isOpen={isSupplyModalOpen}
+        onClose={() => setIsSupplyModalOpen(false)}
+        userRole={userRole}
+        currentRombongId={
+          activeScreen === 'rombong1' || activeScreen === 'rombong 1' ? 'rmb1' :
+          activeScreen === 'rombong2' || activeScreen === 'rombong 2' ? 'rmb2' :
+          activeScreen === 'rombong3' || activeScreen === 'rombong 3' ? 'rmb3' :
+          activeScreen === 'rombong4' || activeScreen === 'rombong 4' ? 'rmb4' :
+          'rmb1'
+        }
+        supplyNeeds={supplyNeeds}
+        onSaveNeed={handleSaveSupplyNeed}
+        onClearNeed={userRole === 'admin' ? handleClearSupplyNeed : undefined}
+      />
     </div>
   );
 }

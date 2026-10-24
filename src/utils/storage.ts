@@ -3,6 +3,7 @@ import { AppPreferences, Order, SupplyNeed } from '../types';
 const ORDERS_KEY = 'gapuro_orders_v1';
 const PREFS_KEY = 'gapuro_preferences_v1';
 const DATE_REF_KEY = 'gapuro_reference_date';
+const DATE_MODE_KEY = 'gapuro_date_mode';
 const SUPPLY_NEEDS_KEY = 'gapuro_supply_needs_v1';
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
@@ -199,12 +200,58 @@ export const savePreferences = (prefs: AppPreferences): void => {
   }
 };
 
+export const getDateMode = (): 'auto' | 'manual' => {
+  try {
+    const mode = localStorage.getItem(DATE_MODE_KEY);
+    if (mode === 'manual') return 'manual';
+    return 'auto'; // Default: otomatis selalu mengikuti tanggal hari ini
+  } catch {
+    return 'auto';
+  }
+};
+
+export const setDateMode = (mode: 'auto' | 'manual'): void => {
+  try {
+    localStorage.setItem(DATE_MODE_KEY, mode);
+  } catch (err) {
+    console.error('Failed to save date mode to localStorage', err);
+  }
+};
+
+export const getEffectiveDate = (): Date => {
+  const mode = getDateMode();
+  if (mode === 'auto') {
+    return new Date();
+  }
+  const saved = localStorage.getItem(DATE_REF_KEY);
+  // Bila nilai tersimpan adalah dummy 2026-09-28 dan mode bukan eksplisit manual, gunakan hari ini
+  if (saved && saved !== '2026-09-28') {
+    const parts = saved.split('-');
+    if (parts.length === 3) {
+      return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    }
+  }
+  return new Date();
+};
+
 export const getSavedReferenceDate = (): string => {
-  return localStorage.getItem(DATE_REF_KEY) || '2026-09-28';
+  const mode = getDateMode();
+  if (mode === 'auto') {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return localStorage.getItem(DATE_REF_KEY) || new Date().toISOString().split('T')[0];
 };
 
 export const saveReferenceDate = (dateStr: string): void => {
-  localStorage.setItem(DATE_REF_KEY, dateStr);
+  try {
+    localStorage.setItem(DATE_REF_KEY, dateStr);
+  } catch (err) {
+    console.error('Failed to save reference date to localStorage', err);
+  }
 };
 
 export const loadLocalSupplyNeeds = (): SupplyNeed[] => {

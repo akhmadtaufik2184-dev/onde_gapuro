@@ -8,6 +8,7 @@ interface HeaderProps {
   onNavigate: (screen: ActiveScreen) => void;
   titleOverride?: string;
   referenceDateDisplay?: string;
+  dateMode?: 'auto' | 'manual';
   onChangeDateClick?: () => void;
   onLogout?: () => void;
   onOpenSupplyNeed?: () => void;
@@ -21,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigate,
   titleOverride,
   referenceDateDisplay,
+  dateMode = 'auto',
   onChangeDateClick,
   onLogout,
   onOpenSupplyNeed,
@@ -186,9 +188,18 @@ export const Header: React.FC<HeaderProps> = ({
 
       {isMainScreen && referenceDateDisplay && (
         <div className="bg-[#1b553d] px-3.5 py-1 text-xs font-medium text-emerald-100 flex items-center justify-between border-t border-emerald-700/50">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-semibold text-white">Tanggal :</span>
             <span>{referenceDateDisplay}</span>
+            {dateMode === 'auto' ? (
+              <span className="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/25 text-emerald-200 border border-emerald-400/30 font-medium">
+                Otomatis
+              </span>
+            ) : (
+              <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/25 text-amber-200 border border-amber-400/40 font-medium">
+                Manual
+              </span>
+            )}
           </div>
           {onChangeDateClick && (
             <button

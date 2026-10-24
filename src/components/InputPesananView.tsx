@@ -52,6 +52,13 @@ export const InputPesananView: React.FC<InputPesananViewProps> = ({
   // Success Feedback Toast
   const [savedSuccess, setSavedSuccess] = useState<string | null>(null);
 
+  // Sync default form date whenever referenceDate updates
+  React.useEffect(() => {
+    const formatted = toInputDateFormat(referenceDate);
+    setTanggalRaw(formatted);
+    setHariTanggalDisplay(formatIndoDate(referenceDate));
+  }, [referenceDate]);
+
   const handleDateChange = (newDateRaw: string) => {
     setTanggalRaw(newDateRaw);
     const d = parseDateFromRaw(newDateRaw);
@@ -59,6 +66,10 @@ export const InputPesananView: React.FC<InputPesananViewProps> = ({
   };
 
   const resetForm = () => {
+    const formatted = toInputDateFormat(referenceDate);
+    setTanggalRaw(formatted);
+    setHariTanggalDisplay(formatIndoDate(referenceDate));
+    setJam('09:00');
     setBijian('');
     setBox6('');
     setBox10('');

@@ -12,6 +12,9 @@ import {
   saveLocalSupplyNeeds,
   getSavedReferenceDate,
   saveReferenceDate,
+  getEffectiveDate,
+  getDateMode,
+  setDateMode,
   DEFAULT_PREFERENCES,
 } from './utils/storage';
 import { formatIndoDateFull, parseDateFromRaw, isSupplyNeedValid } from './utils/format';
@@ -74,11 +77,39 @@ export default function App() {
   const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<Order | null>(null);
   const [selectedOrderForReceipt, setSelectedOrderForReceipt] = useState<Order | null>(null);
 
-  // Reference date: defaults to 2026-09-28 (from mockup) or saved
-  const [referenceDate, setReferenceDate] = useState<Date>(() => {
-    const saved = getSavedReferenceDate();
-    return parseDateFromRaw(saved);
-  });
+  // Reference date: defaults to real-time today, or manual override if configured
+  const [dateMode, setDateModeState] = useState<'auto' | 'manual'>(() => getDateMode());
+  const [referenceDate, setReferenceDate] = useState<Date>(() => getEffectiveDate());
+
+  // Real-time automatic date updater when dateMode is 'auto' (e.g. across midnight or app wake)
+  useEffect(() => {
+    if (dateMode !== 'auto') return;
+
+    const syncToday = () => {
+      const now = new Date();
+      setReferenceDate((prev) => {
+        if (
+          prev.getFullYear() !== now.getFullYear() ||
+          prev.getMonth() !== now.getMonth() ||
+          prev.getDate() !== now.getDate()
+        ) {
+          return new Date();
+        }
+        return prev;
+      });
+    };
+
+    // Check periodically every 30 seconds and when browser tab becomes active
+    const timer = setInterval(syncToday, 30000);
+    window.addEventListener('focus', syncToday);
+    document.addEventListener('visibilitychange', syncToday);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', syncToday);
+      document.removeEventListener('visibilitychange', syncToday);
+    };
+  }, [dateMode]);
 
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -366,8 +397,10 @@ export default function App() {
     }
   };
 
-  // Handler: Change reference date
-  const handleChangeReferenceDate = (newDate: Date) => {
+  // Handler: Change reference date and mode
+  const handleChangeReferenceDate = (newDate: Date, newMode: 'auto' | 'manual' = 'auto') => {
+    setDateModeState(newMode);
+    setDateMode(newMode);
     setReferenceDate(newDate);
     const y = newDate.getFullYear();
     const m = String(newDate.getMonth() + 1).padStart(2, '0');
@@ -445,6 +478,7 @@ export default function App() {
                 activeScreen={activeScreen}
                 onNavigate={handleNavigate}
                 referenceDateDisplay={formatIndoDateFull(referenceDate)}
+                dateMode={dateMode}
                 onChangeDateClick={userRole === 'admin' ? () => setIsDateModalOpen(true) : undefined}
                 onOpenSupplyNeed={() => handleOpenSupplyNeed()}
                 activeSupplyCount={supplyNeeds.filter((n) => isSupplyNeedValid(n)).length}
@@ -600,6 +634,7 @@ export default function App() {
       {isDateModalOpen && userRole === 'admin' && (
         <DateReferenceModal
           currentDate={referenceDate}
+          currentMode={dateMode}
           onSave={handleChangeReferenceDate}
           onClose={() => setIsDateModalOpen(false)}
         />

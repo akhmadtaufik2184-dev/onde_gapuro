@@ -176,3 +176,79 @@ export const isSupplyNeedValid = (need: SupplyNeed, now: Date = new Date()): boo
   // Jika waktu sekarang masih sebelum cutoff 09:00, kebutuhan masih valid/aktif
   return now.getTime() < cutOff.getTime();
 };
+
+export const formatIndoDayUpper = (date: Date): string => {
+  const days = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+  return days[date.getDay()];
+};
+
+export const formatShortDateDisplay = (date: Date): string => {
+  const day = date.getDate();
+  const month = INDO_MONTHS[date.getMonth()];
+  const yr = String(date.getFullYear()).slice(-2);
+  return `${day}-${month}-${yr}`;
+};
+
+/**
+ * Perhitungan Laporan Penjualan Harian & Pendapatan Pegawai
+ * Rumus dari gambar lampiran:
+ * - TERJUAL = sum(uraianTerjual)
+ * - SISA = stokMasuk - terjual
+ * - JUMLAH = terjual * harga
+ * - CASH + TRANSFER + QRIS
+ * - Jika TERJUAL >= TARGET -> Gaji = 50.000
+ *   Jika tidak -> Gaji = 50.000 - ((TARGET - TERJUAL) * 200)
+ * - BONUS: jika TERJUAL > TARGET -> (TERJUAL - TARGET) * 200, jika tidak -> 0
+ * - TOTAL = GAJI + BONUS
+ * - GRAND TOTAL = TOTAL + LEMBUR
+ */
+export const calculateDailyReport = (
+  stokMasuk: number,
+  uraianTerjual: number[],
+  harga: number,
+  cash: number,
+  transfer: number,
+  qris: number,
+  target: number,
+  lembur: number = 0,
+  gajiPokok: number = 50000,
+  bonusPerPcs: number = 200
+) => {
+  const terjual = (uraianTerjual || []).reduce((acc, curr) => acc + (Number(curr) || 0), 0);
+  const sisa = Math.max(0, (Number(stokMasuk) || 0) - terjual);
+  const jumlah = terjual * (Number(harga) || 0);
+  const totalBayarDiterima = (Number(cash) || 0) + (Number(transfer) || 0) + (Number(qris) || 0);
+  const selisih = totalBayarDiterima - jumlah;
+  const isSelisih = selisih !== 0;
+
+  // Gaji calculation
+  let gaji = gajiPokok;
+  if (terjual >= target) {
+    gaji = gajiPokok;
+  } else {
+    const defisit = target - terjual;
+    gaji = Math.max(0, gajiPokok - (defisit * bonusPerPcs));
+  }
+
+  // Bonus calculation
+  let bonus = 0;
+  if (terjual > target) {
+    bonus = (terjual - target) * bonusPerPcs;
+  }
+
+  const total = gaji + bonus;
+  const grandTotalGaji = total + (Number(lembur) || 0);
+
+  return {
+    terjual,
+    sisa,
+    jumlah,
+    totalBayarDiterima,
+    selisih,
+    isSelisih,
+    gaji,
+    bonus,
+    total,
+    grandTotalGaji,
+  };
+};

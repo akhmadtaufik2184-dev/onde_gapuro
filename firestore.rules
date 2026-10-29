@@ -16,6 +16,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Daily reports collection for Rombong 1-4 and Admin
+    match /daily_reports/{reportId} {
+      allow read, write: if true;
+    }
+
     // System settings (e.g. active simulated reference date if shared)
     match /settings/{settingId} {
       allow read, write: if true;

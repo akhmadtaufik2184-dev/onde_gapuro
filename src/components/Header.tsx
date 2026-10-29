@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActiveScreen, UserRole } from '../types';
-import { ArrowLeft, Home, Calendar, LogOut, PackagePlus } from 'lucide-react';
+import { ArrowLeft, Home, Calendar, LogOut, PackagePlus, FileSpreadsheet } from 'lucide-react';
 import { PWAInstallButton } from './PWAInstallButton';
 
 interface HeaderProps {
@@ -15,6 +15,7 @@ interface HeaderProps {
   activeSupplyCount?: number;
   userRole?: UserRole;
   isSyncing?: boolean;
+  onOpenLaporanHarian?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -29,6 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeSupplyCount = 0,
   userRole = 'admin',
   isSyncing = false,
+  onOpenLaporanHarian,
 }) => {
   const isMainScreen = activeScreen === 'input';
   const isRombongRole = userRole.startsWith('rombong');
@@ -171,6 +173,20 @@ export const Header: React.FC<HeaderProps> = ({
                   {activeSupplyCount}
                 </span>
               )}
+            </button>
+          )}
+
+          {/* Tombol Menu Laporan Penjualan Harian */}
+          {onOpenLaporanHarian && (
+            <button
+              onClick={onOpenLaporanHarian}
+              title="Buka Laporan Penjualan Harian (Stok, Kas, Gaji & PDF)"
+              className="p-1.5 rounded-lg hover:bg-white/20 active:bg-white/30 text-amber-200 hover:text-amber-100 transition-all cursor-pointer flex items-center gap-1 text-xs bg-emerald-900/40 border border-emerald-400/30"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-amber-300" />
+              <span className="hidden sm:inline text-[11px] font-semibold text-white">
+                Laporan
+              </span>
             </button>
           )}
 

@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { ActiveScreen, AppPreferences, Order, RombongId, SupplyNeed } from '../types';
 import { OrderCard } from './OrderCard';
 import { calculateOrderTotal, classifyOrderDate, formatRupiah, isSupplyNeedValid } from '../utils/format';
-import { PlusCircle, ShoppingBag, History, PackagePlus, Sparkles } from 'lucide-react';
+import { PlusCircle, ShoppingBag, History, PackagePlus, Sparkles, FileSpreadsheet } from 'lucide-react';
 
 interface RombongViewProps {
   rombongId: RombongId;
@@ -17,6 +17,7 @@ interface RombongViewProps {
   isReadOnly?: boolean; // When true (rombong role), cannot switch rombongs, input orders, edit, or print receipt
   onOpenSupplyNeed?: () => void;
   supplyNeed?: SupplyNeed;
+  onOpenLaporanHarian?: () => void;
 }
 
 export const RombongView: React.FC<RombongViewProps> = ({
@@ -32,6 +33,7 @@ export const RombongView: React.FC<RombongViewProps> = ({
   isReadOnly = false,
   onOpenSupplyNeed,
   supplyNeed,
+  onOpenLaporanHarian,
 }) => {
   // Check if supply need for this rombong is currently active (before 09:00 reset)
   const hasActiveNeed = supplyNeed ? isSupplyNeedValid(supplyNeed) : false;
@@ -168,6 +170,35 @@ export const RombongView: React.FC<RombongViewProps> = ({
               </button>
             )}
           </div>
+        )}
+      </div>
+
+      {/* Card Menu Laporan Penjualan Harian (Stok, Kas, Gaji & Download PDF) */}
+      <div className="bg-gradient-to-r from-emerald-900 to-[#184e36] text-white border border-emerald-700/60 rounded-xl p-3 shadow-xs mb-3 text-xs flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 bg-white/15 rounded-lg text-amber-300">
+            <FileSpreadsheet className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="font-bold text-xs flex items-center gap-1.5">
+              <span>Laporan Penjualan Harian</span>
+              <span className="text-[9px] bg-amber-400 text-stone-950 font-black px-1.5 py-0.2 rounded">
+                PDF
+              </span>
+            </div>
+            <div className="text-[11px] text-emerald-200">
+              Rekap Stok, Omset, Gaji & Cetak PDF
+            </div>
+          </div>
+        </div>
+
+        {onOpenLaporanHarian && (
+          <button
+            onClick={onOpenLaporanHarian}
+            className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-stone-950 font-black text-xs rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-xs"
+          >
+            <span>Buka Laporan</span>
+          </button>
         )}
       </div>
 

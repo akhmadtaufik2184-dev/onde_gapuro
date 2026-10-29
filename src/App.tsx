@@ -4,12 +4,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ActiveScreen, AppPreferences, Order, RombongId, UserRole, SupplyNeed } from './types';
+import { ActiveScreen, AppPreferences, Order, RombongId, UserRole, SupplyNeed, DailyReport } from './types';
 import {
   loadOrders,
   loadPreferences,
   loadLocalSupplyNeeds,
   saveLocalSupplyNeeds,
+  loadLocalDailyReports,
+  saveLocalDailyReports,
   getSavedReferenceDate,
   saveReferenceDate,
   getEffectiveDate,
@@ -31,10 +33,12 @@ import { DateReferenceModal } from './components/DateReferenceModal';
 import { PortalLoginView } from './components/PortalLoginView';
 import { LogoutConfirmModal } from './components/LogoutConfirmModal';
 import { SupplyNeedModal } from './components/SupplyNeedModal';
+import { LaporanHarianModal } from './components/LaporanHarianModal';
 import {
   subscribeToOrders,
   subscribeToPreferences,
   subscribeToSupplyNeeds,
+  subscribeToDailyReports,
   createOrderInFirestore,
   updateOrderInFirestore,
   deleteOrderInFirestore,
@@ -42,6 +46,8 @@ import {
   savePreferencesInFirestore,
   saveSupplyNeedInFirestore,
   clearSupplyNeedInFirestore,
+  saveDailyReportInFirestore,
+  deleteDailyReportInFirestore,
 } from './services/orderService';
 
 const PORTAL_AUTH_KEY = 'gapuro_portal_authorized';
@@ -118,6 +124,14 @@ export default function App() {
   const [supplyNeeds, setSupplyNeeds] = useState<SupplyNeed[]>(() => {
     return loadLocalSupplyNeeds();
   });
+
+  // Daily Reports State (Laporan Penjualan Harian)
+  const [isLaporanModalOpen, setIsLaporanModalOpen] = useState(false);
+  const [selectedLaporanRombongId, setSelectedLaporanRombongId] = useState<RombongId>('rmb1');
+  const [dailyReports, setDailyReports] = useState<DailyReport[]>(() => {
+    return loadLocalDailyReports();
+  });
+
   const [isMobileFrame, setIsMobileFrame] = useState(true);
 
   // Helper untuk membuka modal kebutuhan bahan dengan target rombong yang spesifik
@@ -144,6 +158,32 @@ export default function App() {
       setSelectedSupplyRombongId('rmb1');
     }
     setIsSupplyModalOpen(true);
+  };
+
+  // Helper untuk membuka modal Laporan Penjualan Harian
+  const handleOpenLaporanHarian = (targetRmb?: RombongId) => {
+    if (targetRmb) {
+      setSelectedLaporanRombongId(targetRmb);
+    } else if (userRole === 'rombong 1') {
+      setSelectedLaporanRombongId('rmb1');
+    } else if (userRole === 'rombong 2') {
+      setSelectedLaporanRombongId('rmb2');
+    } else if (userRole === 'rombong 3') {
+      setSelectedLaporanRombongId('rmb3');
+    } else if (userRole === 'rombong 4') {
+      setSelectedLaporanRombongId('rmb4');
+    } else if (activeScreen === 'rombong1' || activeScreen === 'rombong 1') {
+      setSelectedLaporanRombongId('rmb1');
+    } else if (activeScreen === 'rombong2' || activeScreen === 'rombong 2') {
+      setSelectedLaporanRombongId('rmb2');
+    } else if (activeScreen === 'rombong3' || activeScreen === 'rombong 3') {
+      setSelectedLaporanRombongId('rmb3');
+    } else if (activeScreen === 'rombong4' || activeScreen === 'rombong 4') {
+      setSelectedLaporanRombongId('rmb4');
+    } else {
+      setSelectedLaporanRombongId('rmb1');
+    }
+    setIsLaporanModalOpen(true);
   };
 
   // Real-time Firestore subscriptions for cross-device sync (hanya aktif bila terautentikasi)
@@ -185,10 +225,22 @@ export default function App() {
       }
     );
 
+    // 4. Subscribe to daily reports in real-time (laporan harian penjualan)
+    const unsubscribeDailyReports = subscribeToDailyReports(
+      (realtimeReports) => {
+        setDailyReports(realtimeReports);
+        saveLocalDailyReports(realtimeReports);
+      },
+      (err) => {
+        console.error('Error in realtime daily reports subscription:', err);
+      }
+    );
+
     return () => {
       unsubscribeOrders();
       unsubscribePrefs();
       unsubscribeSupply();
+      unsubscribeDailyReports();
     };
   }, [isAuthenticated]);
 
@@ -359,6 +411,52 @@ export default function App() {
     }
   };
 
+  // Handler: Save / Update Daily Report (Laporan Penjualan Harian)
+  const handleSaveDailyReport = async (report: DailyReport) => {
+    try {
+      setIsSyncing(true);
+      await saveDailyReportInFirestore(report);
+      setDailyReports((prev) => {
+        const filtered = prev.filter((r) => r.id !== report.id);
+        const updated = [...filtered, report];
+        saveLocalDailyReports(updated);
+        return updated;
+      });
+    } catch (err) {
+      console.error('Failed to save daily report to Firestore:', err);
+      setDailyReports((prev) => {
+        const filtered = prev.filter((r) => r.id !== report.id);
+        const updated = [...filtered, report];
+        saveLocalDailyReports(updated);
+        return updated;
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Handler: Delete Daily Report
+  const handleDeleteDailyReport = async (reportId: string) => {
+    try {
+      setIsSyncing(true);
+      await deleteDailyReportInFirestore(reportId);
+      setDailyReports((prev) => {
+        const updated = prev.filter((r) => r.id !== reportId);
+        saveLocalDailyReports(updated);
+        return updated;
+      });
+    } catch (err) {
+      console.error('Failed to delete daily report from Firestore:', err);
+      setDailyReports((prev) => {
+        const updated = prev.filter((r) => r.id !== reportId);
+        saveLocalDailyReports(updated);
+        return updated;
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // Handler: Save preferences from Gambar 2 (instantly synced to Firestore)
   const handleSavePreferences = async (newPrefs: AppPreferences) => {
     try {
@@ -481,6 +579,7 @@ export default function App() {
                 dateMode={dateMode}
                 onChangeDateClick={userRole === 'admin' ? () => setIsDateModalOpen(true) : undefined}
                 onOpenSupplyNeed={() => handleOpenSupplyNeed()}
+                onOpenLaporanHarian={() => handleOpenLaporanHarian()}
                 activeSupplyCount={supplyNeeds.filter((n) => isSupplyNeedValid(n)).length}
                 onLogout={handleLogout}
                 userRole={userRole}
@@ -556,6 +655,7 @@ export default function App() {
                     onSelectRombong={handleSelectRombong}
                     isReadOnly={isRombongRole}
                     onOpenSupplyNeed={() => handleOpenSupplyNeed('rmb1')}
+                    onOpenLaporanHarian={() => handleOpenLaporanHarian('rmb1')}
                     supplyNeed={supplyNeeds.find((n) => n.rombong === 'rmb1')}
                   />
                 )}
@@ -574,6 +674,7 @@ export default function App() {
                     onSelectRombong={handleSelectRombong}
                     isReadOnly={isRombongRole}
                     onOpenSupplyNeed={() => handleOpenSupplyNeed('rmb2')}
+                    onOpenLaporanHarian={() => handleOpenLaporanHarian('rmb2')}
                     supplyNeed={supplyNeeds.find((n) => n.rombong === 'rmb2')}
                   />
                 )}
@@ -592,6 +693,7 @@ export default function App() {
                     onSelectRombong={handleSelectRombong}
                     isReadOnly={isRombongRole}
                     onOpenSupplyNeed={() => handleOpenSupplyNeed('rmb3')}
+                    onOpenLaporanHarian={() => handleOpenLaporanHarian('rmb3')}
                     supplyNeed={supplyNeeds.find((n) => n.rombong === 'rmb3')}
                   />
                 )}
@@ -610,6 +712,7 @@ export default function App() {
                     onSelectRombong={handleSelectRombong}
                     isReadOnly={isRombongRole}
                     onOpenSupplyNeed={() => handleOpenSupplyNeed('rmb4')}
+                    onOpenLaporanHarian={() => handleOpenLaporanHarian('rmb4')}
                     supplyNeed={supplyNeeds.find((n) => n.rombong === 'rmb4')}
                   />
                 )}
@@ -657,6 +760,19 @@ export default function App() {
         supplyNeeds={supplyNeeds}
         onSaveNeed={handleSaveSupplyNeed}
         onClearNeed={userRole === 'admin' ? handleClearSupplyNeed : undefined}
+      />
+
+      {/* Laporan Penjualan Harian Modal (Stok, Pembayaran, Gaji & Download PDF) */}
+      <LaporanHarianModal
+        isOpen={isLaporanModalOpen}
+        onClose={() => setIsLaporanModalOpen(false)}
+        userRole={userRole}
+        currentRombongId={selectedLaporanRombongId}
+        referenceDate={referenceDate}
+        preferences={preferences}
+        dailyReports={dailyReports}
+        onSaveReport={handleSaveDailyReport}
+        onDeleteReport={userRole === 'admin' ? handleDeleteDailyReport : undefined}
       />
     </div>
   );

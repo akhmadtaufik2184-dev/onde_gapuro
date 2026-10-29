@@ -11,13 +11,14 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { AppPreferences, Order, SupplyNeed } from '../types';
+import { AppPreferences, Order, SupplyNeed, DailyReport } from '../types';
 import { DEFAULT_PREFERENCES, INITIAL_ORDERS } from '../utils/storage';
 
 const ORDERS_COLLECTION = 'orders';
 const PREFS_COLLECTION = 'preferences';
 const PREFS_DOC_ID = 'general';
 const SUPPLY_NEEDS_COLLECTION = 'supply_needs';
+const DAILY_REPORTS_COLLECTION = 'daily_reports';
 
 /**
  * Real-time listener for orders collection across all devices
@@ -99,6 +100,10 @@ export const subscribeToPreferences = (
           prices: {
             ...DEFAULT_PREFERENCES.prices,
             ...(data.prices || {}),
+          },
+          rombongSettings: {
+            ...DEFAULT_PREFERENCES.rombongSettings,
+            ...(data.rombongSettings || {}),
           },
         });
       }
@@ -242,6 +247,77 @@ export const clearSupplyNeedInFirestore = async (
   rombongId: string
 ): Promise<void> => {
   const docRef = doc(db, SUPPLY_NEEDS_COLLECTION, rombongId);
+  await deleteDoc(docRef);
+};
+
+/**
+ * Real-time listener for daily reports collection
+ */
+export const subscribeToDailyReports = (
+  onReportsUpdated: (reports: DailyReport[]) => void,
+  onError?: (err: Error) => void
+) => {
+  const reportsRef = collection(db, DAILY_REPORTS_COLLECTION);
+  return onSnapshot(
+    reportsRef,
+    (snapshot) => {
+      const list: DailyReport[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        list.push({
+          id: docSnap.id,
+          rombong: data.rombong,
+          hari: data.hari || '',
+          tanggalRaw: data.tanggalRaw || '',
+          tanggalDisplay: data.tanggalDisplay || '',
+          stokMasuk: Number(data.stokMasuk) || 0,
+          uraianTerjual: Array.isArray(data.uraianTerjual) ? data.uraianTerjual : [0, 0, 0, 0],
+          terjual: Number(data.terjual) || 0,
+          sisa: Number(data.sisa) || 0,
+          harga: Number(data.harga) || 2500,
+          cash: Number(data.cash) || 0,
+          transfer: Number(data.transfer) || 0,
+          qris: Number(data.qris) || 0,
+          jumlah: Number(data.jumlah) || 0,
+          totalBayarDiterima: Number(data.totalBayarDiterima) || 0,
+          keterangan: data.keterangan || '',
+          target: Number(data.target) || 70,
+          gaji: Number(data.gaji) || 0,
+          bonus: Number(data.bonus) || 0,
+          total: Number(data.total) || 0,
+          lembur: Number(data.lembur) || 0,
+          grandTotalGaji: Number(data.grandTotalGaji) || 0,
+          createdAt: data.createdAt || Date.now(),
+          updatedAt: data.updatedAt || Date.now(),
+          updatedBy: data.updatedBy || '',
+        });
+      });
+      onReportsUpdated(list);
+    },
+    (error) => {
+      console.error('Realtime daily reports error:', error);
+      if (onError) onError(error);
+    }
+  );
+};
+
+/**
+ * Save / Update Daily Report in Firestore
+ */
+export const saveDailyReportInFirestore = async (
+  report: DailyReport
+): Promise<void> => {
+  const docRef = doc(db, DAILY_REPORTS_COLLECTION, report.id);
+  await setDoc(docRef, report, { merge: true });
+};
+
+/**
+ * Delete Daily Report in Firestore
+ */
+export const deleteDailyReportInFirestore = async (
+  reportId: string
+): Promise<void> => {
+  const docRef = doc(db, DAILY_REPORTS_COLLECTION, reportId);
   await deleteDoc(docRef);
 };
 

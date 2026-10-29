@@ -1,10 +1,11 @@
-import { AppPreferences, Order, SupplyNeed } from '../types';
+import { AppPreferences, Order, SupplyNeed, DailyReport, DEFAULT_ROMBONG_SETTINGS } from '../types';
 
 const ORDERS_KEY = 'gapuro_orders_v1';
 const PREFS_KEY = 'gapuro_preferences_v1';
 const DATE_REF_KEY = 'gapuro_reference_date';
 const DATE_MODE_KEY = 'gapuro_date_mode';
 const SUPPLY_NEEDS_KEY = 'gapuro_supply_needs_v1';
+const DAILY_REPORTS_KEY = 'gapuro_daily_reports_v1';
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
   telp: '081998765433',
@@ -16,6 +17,7 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
     hantr15: 45000,
     hantr24: 70000,
   },
+  rombongSettings: DEFAULT_ROMBONG_SETTINGS,
 };
 
 export const INITIAL_ORDERS: Order[] = [
@@ -186,6 +188,10 @@ export const loadPreferences = (): AppPreferences => {
         ...DEFAULT_PREFERENCES.prices,
         ...(parsed.prices || {}),
       },
+      rombongSettings: {
+        ...DEFAULT_PREFERENCES.rombongSettings,
+        ...(parsed.rombongSettings || {}),
+      },
     };
   } catch {
     return DEFAULT_PREFERENCES;
@@ -269,5 +275,23 @@ export const saveLocalSupplyNeeds = (needs: SupplyNeed[]): void => {
     localStorage.setItem(SUPPLY_NEEDS_KEY, JSON.stringify(needs));
   } catch (err) {
     console.error('Failed to save supply needs to localStorage', err);
+  }
+};
+
+export const loadLocalDailyReports = (): DailyReport[] => {
+  try {
+    const raw = localStorage.getItem(DAILY_REPORTS_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) || [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveLocalDailyReports = (reports: DailyReport[]): void => {
+  try {
+    localStorage.setItem(DAILY_REPORTS_KEY, JSON.stringify(reports));
+  } catch (err) {
+    console.error('Failed to save daily reports to localStorage', err);
   }
 };

@@ -43,9 +43,61 @@ export interface SupplyNeed {
   targetDate: string; // YYYY-MM-DD (misal untuk kebutuhan besok)
 }
 
+export interface RombongConfig {
+  harga: number; // Harga onde-onde per butir di rombong ini (default: 2500)
+  target: number; // Target penjualan harian (Rombong 1 = 140, Rombong 2 = 70, Rombong 3 = 70, Rombong 4 = 70)
+  gajiPokok?: number; // Default 50000
+  bonusPerPcs?: number; // Default 200
+}
+
+export const DEFAULT_ROMBONG_SETTINGS: Record<RombongId, RombongConfig> = {
+  rmb1: { harga: 2500, target: 140, gajiPokok: 50000, bonusPerPcs: 200 },
+  rmb2: { harga: 2500, target: 70, gajiPokok: 50000, bonusPerPcs: 200 },
+  rmb3: { harga: 2500, target: 70, gajiPokok: 50000, bonusPerPcs: 200 },
+  rmb4: { harga: 2500, target: 70, gajiPokok: 50000, bonusPerPcs: 200 },
+};
+
 export interface AppPreferences {
   telp: string;
   prices: Record<ItemKey, number>;
+  rombongSettings?: Record<RombongId, RombongConfig>;
+}
+
+export interface DailyReport {
+  id: string; // e.g. "rmb1_2026-10-28"
+  rombong: RombongId;
+  hari: string; // e.g. "JUMAT"
+  tanggalRaw: string; // "2026-10-23"
+  tanggalDisplay: string; // "23-Okt-26"
+
+  // STOK
+  stokMasuk: number; // diisi pegawai
+  uraianTerjual: number[]; // 4 kolom rincian terjual, e.g. [30, 20, 20, 0]
+  terjual: number; // otomatis sum(uraianTerjual)
+  sisa: number; // otomatis (stokMasuk - terjual)
+
+  // PEMBAYARAN
+  harga: number; // dari preference rombong (e.g. 2500)
+  cash: number; // diisi pegawai
+  transfer: number; // diisi pegawai
+  qris: number; // diisi pegawai
+  jumlah: number; // terjual * harga
+  totalBayarDiterima: number; // cash + transfer + qris
+
+  // KETERANGAN
+  keterangan: string; // diisi pegawai
+
+  // PENDAPATAN
+  target: number; // dari preference rombong (e.g. 140 atau 70)
+  gaji: number; // jika terjual >= target maka 50.000, jika tidak maka 50.000 - ((target - terjual) * 200)
+  bonus: number; // jika terjual > target maka (terjual - target) * 200, jika tidak maka 0
+  total: number; // gaji + bonus
+  lembur: number; // diisi pegawai
+  grandTotalGaji: number; // total + lembur
+
+  createdAt: number;
+  updatedAt: number;
+  updatedBy?: string;
 }
 
 export type ActiveScreen = 
@@ -54,6 +106,7 @@ export type ActiveScreen =
   | 'data_pesanan' // gambar 3
   | 'edit'         // gambar 4
   | 'cetak_nota'   // gambar 5
+  | 'laporan_harian' // Laporan Penjualan Harian Rombong + Download PDF
   | 'rombong1'     // gambar 6
   | 'rombong 1'    // alias
   | 'rombong2'     // gambar 7

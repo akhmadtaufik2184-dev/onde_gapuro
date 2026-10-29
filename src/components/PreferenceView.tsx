@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { AppPreferences, ItemKey } from '../types';
+import { AppPreferences, ItemKey, RombongConfig, RombongId, DEFAULT_ROMBONG_SETTINGS } from '../types';
 import { formatRupiah, parseNumber } from '../utils/format';
-import { Check, RotateCcw, ArrowLeft, Phone, Tag, LogOut, Shield } from 'lucide-react';
+import { Check, RotateCcw, ArrowLeft, Phone, Tag, LogOut, Shield, Store, Award } from 'lucide-react';
 import { DEFAULT_PREFERENCES } from '../utils/storage';
 import { PWAInstallButton } from './PWAInstallButton';
 
@@ -20,6 +20,10 @@ export const PreferenceView: React.FC<PreferenceViewProps> = ({
 }) => {
   const [telp, setTelp] = useState(preferences.telp || '');
   const [prices, setPrices] = useState({ ...preferences.prices });
+  const [rombongSettings, setRombongSettings] = useState<Record<RombongId, RombongConfig>>(() => ({
+    ...DEFAULT_ROMBONG_SETTINGS,
+    ...(preferences.rombongSettings || {}),
+  }));
   const [savedAlert, setSavedAlert] = useState(false);
 
   const handlePriceChange = (key: ItemKey, valueStr: string) => {
@@ -30,20 +34,37 @@ export const PreferenceView: React.FC<PreferenceViewProps> = ({
     }));
   };
 
+  const handleRombongConfigChange = (
+    rId: RombongId,
+    field: keyof RombongConfig,
+    valueStr: string
+  ) => {
+    const num = parseNumber(valueStr);
+    setRombongSettings((prev) => ({
+      ...prev,
+      [rId]: {
+        ...(prev[rId] || DEFAULT_ROMBONG_SETTINGS[rId]),
+        [field]: num,
+      },
+    }));
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     onSavePreferences({
       telp: telp.trim() || DEFAULT_PREFERENCES.telp,
       prices,
+      rombongSettings,
     });
     setSavedAlert(true);
     setTimeout(() => setSavedAlert(false), 3000);
   };
 
   const handleResetDefaults = () => {
-    if (window.confirm('Kembalikan harga dan info telp ke standar awal?')) {
+    if (window.confirm('Kembalikan harga, target rombong, dan info telp ke standar awal?')) {
       setTelp(DEFAULT_PREFERENCES.telp);
       setPrices({ ...DEFAULT_PREFERENCES.prices });
+      setRombongSettings({ ...DEFAULT_ROMBONG_SETTINGS });
       onSavePreferences(DEFAULT_PREFERENCES);
       setSavedAlert(true);
       setTimeout(() => setSavedAlert(false), 2000);
@@ -71,12 +92,12 @@ export const PreferenceView: React.FC<PreferenceViewProps> = ({
       {/* PWA Install Card inside Settings: Automatically hidden when installed */}
       <PWAInstallButton variant="settings-item" />
 
-      {/* Box layout matching Gambar 2 */}
+      {/* Box layout matching Gambar 2 + Variable Rombong */}
       <div className="bg-white border-2 border-stone-800 rounded-md shadow-xs p-4">
         <form onSubmit={handleSave} className="space-y-4">
           {/* Telp Info/pemesanan */}
           <div>
-            <label className="block text-xs font-bold text-stone-800 mb-1 flex items-center gap-1.5">
+            <label className="text-xs font-bold text-stone-800 mb-1 flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5 text-emerald-700" />
               <span>Telp. Info/pemesanan</span>
             </label>
@@ -93,10 +114,11 @@ export const PreferenceView: React.FC<PreferenceViewProps> = ({
             </p>
           </div>
 
+          {/* Daftar Harga Produk */}
           <div className="border-t border-stone-300 pt-3">
             <div className="text-xs font-bold text-stone-800 mb-2 flex items-center gap-1.5">
               <Tag className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Harga :</span>
+              <span>Harga Produk (Nota & Kasir):</span>
             </div>
 
             <div className="space-y-2.5">
@@ -123,6 +145,73 @@ export const PreferenceView: React.FC<PreferenceViewProps> = ({
             </div>
           </div>
 
+          {/* Variabel HARGA & TARGET Tiap Rombong (Sesuai Catatan Laporan Penjualan) */}
+          <div className="border-t border-stone-300 pt-3">
+            <div className="text-xs font-bold text-stone-800 mb-1 flex items-center gap-1.5">
+              <Store className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Harga & Target Laporan Penjualan Tiap Rombong:</span>
+            </div>
+            <p className="text-[11px] text-stone-500 mb-2.5 leading-relaxed">
+              Variabel ini digunakan otomatis pada perhitungan Laporan Penjualan Harian, Gaji Pokok, dan Bonus Pegawai.
+            </p>
+
+            <div className="space-y-2.5">
+              {(['rmb1', 'rmb2', 'rmb3', 'rmb4'] as RombongId[]).map((r, idx) => {
+                const conf = rombongSettings[r] || DEFAULT_ROMBONG_SETTINGS[r];
+                return (
+                  <div
+                    key={r}
+                    className="p-2.5 bg-stone-50 rounded-lg border border-stone-200 space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs text-stone-800 flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                        <span>Rombong {idx + 1}</span>
+                      </span>
+                      <span className="text-[10px] text-emerald-800 font-semibold bg-emerald-100/70 px-2 py-0.5 rounded border border-emerald-300">
+                        Target: {conf.target} butir • Rp {formatRupiah(conf.harga)}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <label className="text-[10px] font-semibold text-stone-600 block mb-0.5">
+                          HARGA (Rp/butir):
+                        </label>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-stone-400">Rp</span>
+                          <input
+                            type="text"
+                            value={formatRupiah(conf.harga)}
+                            onChange={(e) => handleRombongConfigChange(r, 'harga', e.target.value)}
+                            placeholder="2500"
+                            className="w-full text-right text-xs font-bold font-mono px-2 py-1 border border-stone-400 rounded bg-white text-stone-900 focus:outline-emerald-600"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-semibold text-stone-600 block mb-0.5">
+                          TARGET (butir):
+                        </label>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={conf.target}
+                            onChange={(e) => handleRombongConfigChange(r, 'target', e.target.value)}
+                            placeholder={r === 'rmb1' ? '140' : '70'}
+                            className="w-full text-right text-xs font-bold font-mono px-2 py-1 border border-stone-400 rounded bg-white text-stone-900 focus:outline-emerald-600"
+                          />
+                          <span className="text-[10px] text-stone-500">butir</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="pt-2 flex items-center gap-2">
             <button
               type="submit"
@@ -135,7 +224,7 @@ export const PreferenceView: React.FC<PreferenceViewProps> = ({
             <button
               type="button"
               onClick={handleResetDefaults}
-              title="Reset ke harga default"
+              title="Reset ke harga & target default"
               className="px-3 py-2 border border-stone-300 hover:bg-stone-100 text-stone-600 text-xs rounded transition-colors flex items-center gap-1 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />

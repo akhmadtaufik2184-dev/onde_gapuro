@@ -21,6 +21,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Weekly reports collection (Jumat s/d Kamis) for Rombong 1-4 and Admin
+    match /weekly_reports/{reportId} {
+      allow read, write: if true;
+    }
+
     // System settings (e.g. active simulated reference date if shared)
     match /settings/{settingId} {
       allow read, write: if true;

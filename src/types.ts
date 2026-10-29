@@ -100,6 +100,60 @@ export interface DailyReport {
   updatedBy?: string;
 }
 
+export interface DailyReportDayItem {
+  hari: string; // "JUMAT", "SABTU", "MINGGU", "SENIN", "SELASA", "RABU", "KAMIS"
+  tanggalRaw: string; // "2026-10-23"
+  tanggalDisplay: string; // "23-Okt-26"
+  stokMasuk: number;
+  uraianTerjual: number[]; // 4 kolom uraian
+  terjual: number;
+  sisa: number;
+  harga: number;
+  cash: number;
+  transfer: number;
+  qris: number;
+  jumlah: number;
+  totalBayarDiterima: number;
+  isSelisih: boolean;
+  keterangan: string;
+  target: number;
+  gaji: number;
+  bonus: number;
+  total: number;
+  lembur: number;
+  grandTotalGaji: number;
+  isFilled: boolean;
+}
+
+export interface WeeklyReport {
+  id: string; // e.g. "rmb2_2026-10-23_sd_2026-10-29"
+  rombong: RombongId;
+  startDateRaw: string; // Hari Jumat (e.g. "2026-10-23")
+  endDateRaw: string; // Hari Kamis (e.g. "2026-10-29")
+  periodLabel: string; // e.g. "23 Okt 2026 - 29 Okt 2026 (Jumat - Kamis)"
+  status: 'aktif' | 'selesai';
+  days: DailyReportDayItem[]; // 7 hari: [Jumat, Sabtu, Minggu, Senin, Selasa, Rabu, Kamis]
+
+  // Totals for the 1-week period
+  totalMasuk: number;
+  totalTerjual: number;
+  totalSisa: number;
+  totalCash: number;
+  totalTransfer: number;
+  totalQris: number;
+  totalJumlah: number; // Total Omset 1 Minggu
+  totalSetoran: number; // Total Uang Masuk (Cash + Transfer + QRIS)
+  totalGaji: number;
+  totalBonus: number;
+  totalGajiPlusBonus: number;
+  totalLembur: number;
+  grandTotalHonor: number; // Total Honor yang diserahkan ke karyawan di Hari Kamis
+
+  createdAt: number;
+  updatedAt: number;
+  updatedBy?: string;
+}
+
 export type ActiveScreen = 
   | 'input'        // gambar 1
   | 'preference'   // gambar 2

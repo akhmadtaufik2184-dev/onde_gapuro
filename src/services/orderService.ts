@@ -11,7 +11,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { AppPreferences, Order, SupplyNeed, DailyReport } from '../types';
+import { AppPreferences, Order, SupplyNeed, DailyReport, WeeklyReport } from '../types';
 import { DEFAULT_PREFERENCES, INITIAL_ORDERS } from '../utils/storage';
 
 const ORDERS_COLLECTION = 'orders';
@@ -19,6 +19,7 @@ const PREFS_COLLECTION = 'preferences';
 const PREFS_DOC_ID = 'general';
 const SUPPLY_NEEDS_COLLECTION = 'supply_needs';
 const DAILY_REPORTS_COLLECTION = 'daily_reports';
+const WEEKLY_REPORTS_COLLECTION = 'weekly_reports';
 
 /**
  * Real-time listener for orders collection across all devices
@@ -318,6 +319,75 @@ export const deleteDailyReportInFirestore = async (
   reportId: string
 ): Promise<void> => {
   const docRef = doc(db, DAILY_REPORTS_COLLECTION, reportId);
+  await deleteDoc(docRef);
+};
+
+/**
+ * Real-time listener for weekly reports collection (Periode Jumat s/d Kamis)
+ */
+export const subscribeToWeeklyReports = (
+  onReportsUpdated: (reports: WeeklyReport[]) => void,
+  onError?: (err: Error) => void
+) => {
+  const reportsRef = collection(db, WEEKLY_REPORTS_COLLECTION);
+  return onSnapshot(
+    reportsRef,
+    (snapshot) => {
+      const list: WeeklyReport[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        list.push({
+          id: docSnap.id,
+          rombong: data.rombong,
+          startDateRaw: data.startDateRaw || '',
+          endDateRaw: data.endDateRaw || '',
+          periodLabel: data.periodLabel || '',
+          status: data.status || 'aktif',
+          days: Array.isArray(data.days) ? data.days : [],
+          totalMasuk: Number(data.totalMasuk) || 0,
+          totalTerjual: Number(data.totalTerjual) || 0,
+          totalSisa: Number(data.totalSisa) || 0,
+          totalCash: Number(data.totalCash) || 0,
+          totalTransfer: Number(data.totalTransfer) || 0,
+          totalQris: Number(data.totalQris) || 0,
+          totalJumlah: Number(data.totalJumlah) || 0,
+          totalSetoran: Number(data.totalSetoran) || 0,
+          totalGaji: Number(data.totalGaji) || 0,
+          totalBonus: Number(data.totalBonus) || 0,
+          totalGajiPlusBonus: Number(data.totalGajiPlusBonus) || 0,
+          totalLembur: Number(data.totalLembur) || 0,
+          grandTotalHonor: Number(data.grandTotalHonor) || 0,
+          createdAt: data.createdAt || Date.now(),
+          updatedAt: data.updatedAt || Date.now(),
+          updatedBy: data.updatedBy || '',
+        });
+      });
+      onReportsUpdated(list);
+    },
+    (error) => {
+      console.error('Realtime weekly reports error:', error);
+      if (onError) onError(error);
+    }
+  );
+};
+
+/**
+ * Save / Update Weekly Report in Firestore
+ */
+export const saveWeeklyReportInFirestore = async (
+  report: WeeklyReport
+): Promise<void> => {
+  const docRef = doc(db, WEEKLY_REPORTS_COLLECTION, report.id);
+  await setDoc(docRef, report, { merge: true });
+};
+
+/**
+ * Delete Weekly Report in Firestore
+ */
+export const deleteWeeklyReportInFirestore = async (
+  reportId: string
+): Promise<void> => {
+  const docRef = doc(db, WEEKLY_REPORTS_COLLECTION, reportId);
   await deleteDoc(docRef);
 };
 

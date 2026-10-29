@@ -1,4 +1,4 @@
-import { ItemKey, Order, OrderItems, SupplyNeed } from '../types';
+import { ItemKey, Order, OrderItems, SupplyNeed, DailyReportDayItem, WeeklyReport, RombongId } from '../types';
 
 export const formatRupiah = (amount: number): string => {
   return new Intl.NumberFormat('id-ID', {
@@ -250,5 +250,147 @@ export const calculateDailyReport = (
     bonus,
     total,
     grandTotalGaji,
+  };
+};
+
+/**
+ * Menghitung tanggal awal (Jumat) dan akhir (Kamis) untuk siklus 1 minggu.
+ * Siklus: Jumat -> Sabtu -> Minggu -> Senin -> Selasa -> Rabu -> Kamis (tutup buku / gajian).
+ */
+export const getFridayPeriodDates = (date: Date = new Date()) => {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = d.getDay(); // 0: Min, 1: Sen, 2: Sel, 3: Rab, 4: Kam, 5: Jum, 6: Sab
+  
+  // Hari Jumat adalah awal periode:
+  // Jum (5): 0 hari lalu
+  // Sab (6): 1 hari lalu
+  // Min (0): 2 hari lalu
+  // Sen (1): 3 hari lalu
+  // Sel (2): 4 hari lalu
+  // Rab (3): 5 hari lalu
+  // Kam (4): 6 hari lalu
+  const diffToFriday = (day + 2) % 7;
+  const fridayDate = new Date(d);
+  fridayDate.setDate(fridayDate.getDate() - diffToFriday);
+
+  const days: {
+    hari: string;
+    tanggalRaw: string;
+    tanggalDisplay: string;
+    dateObj: Date;
+  }[] = [];
+
+  const dayNames = ['JUMAT', 'SABTU', 'MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS'];
+
+  for (let i = 0; i < 7; i++) {
+    const cur = new Date(fridayDate);
+    cur.setDate(fridayDate.getDate() + i);
+    days.push({
+      hari: dayNames[i],
+      tanggalRaw: toInputDateFormat(cur),
+      tanggalDisplay: formatShortDateDisplay(cur),
+      dateObj: cur,
+    });
+  }
+
+  const thursdayDate = days[6].dateObj;
+
+  return {
+    startDate: fridayDate,
+    endDate: thursdayDate,
+    startDateRaw: days[0].tanggalRaw,
+    endDateRaw: days[6].tanggalRaw,
+    periodLabel: `${formatShortDateDisplay(fridayDate)} - ${formatShortDateDisplay(thursdayDate)} (Jumat - Kamis)`,
+    days,
+  };
+};
+
+export const createInitialWeeklyDays = (
+  fridayStartDate: Date,
+  harga: number = 2500,
+  target: number = 70
+): DailyReportDayItem[] => {
+  const dayNames = ['JUMAT', 'SABTU', 'MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS'];
+  const res: DailyReportDayItem[] = [];
+
+  for (let i = 0; i < 7; i++) {
+    const cur = new Date(fridayStartDate);
+    cur.setDate(fridayStartDate.getDate() + i);
+    res.push({
+      hari: dayNames[i],
+      tanggalRaw: toInputDateFormat(cur),
+      tanggalDisplay: formatShortDateDisplay(cur),
+      stokMasuk: 0,
+      uraianTerjual: [0, 0, 0, 0],
+      terjual: 0,
+      sisa: 0,
+      harga,
+      cash: 0,
+      transfer: 0,
+      qris: 0,
+      jumlah: 0,
+      totalBayarDiterima: 0,
+      isSelisih: false,
+      keterangan: '',
+      target,
+      gaji: 0,
+      bonus: 0,
+      total: 0,
+      lembur: 0,
+      grandTotalGaji: 0,
+      isFilled: false,
+    });
+  }
+
+  return res;
+};
+
+export const calculateWeeklyTotals = (days: DailyReportDayItem[]) => {
+  let totalMasuk = 0;
+  let totalTerjual = 0;
+  let totalSisa = 0;
+  let totalCash = 0;
+  let totalTransfer = 0;
+  let totalQris = 0;
+  let totalJumlah = 0;
+  let totalSetoran = 0;
+  let totalGaji = 0;
+  let totalBonus = 0;
+  let totalGajiPlusBonus = 0;
+  let totalLembur = 0;
+  let grandTotalHonor = 0;
+
+  for (const d of days) {
+    if (d.isFilled) {
+      totalMasuk += Number(d.stokMasuk) || 0;
+      totalTerjual += Number(d.terjual) || 0;
+      totalSisa += Number(d.sisa) || 0;
+      totalCash += Number(d.cash) || 0;
+      totalTransfer += Number(d.transfer) || 0;
+      totalQris += Number(d.qris) || 0;
+      totalJumlah += Number(d.jumlah) || 0;
+      totalSetoran += Number(d.totalBayarDiterima) || 0;
+      totalGaji += Number(d.gaji) || 0;
+      totalBonus += Number(d.bonus) || 0;
+      totalGajiPlusBonus += Number(d.total) || 0;
+      totalLembur += Number(d.lembur) || 0;
+      grandTotalHonor += Number(d.grandTotalGaji) || 0;
+    }
+  }
+
+  return {
+    totalMasuk,
+    totalTerjual,
+    totalSisa,
+    totalCash,
+    totalTransfer,
+    totalQris,
+    totalJumlah,
+    totalSetoran,
+    totalGaji,
+    totalBonus,
+    totalGajiPlusBonus,
+    totalLembur,
+    grandTotalHonor,
   };
 };

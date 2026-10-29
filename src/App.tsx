@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ActiveScreen, AppPreferences, Order, RombongId, UserRole, SupplyNeed, DailyReport } from './types';
+import { ActiveScreen, AppPreferences, Order, RombongId, UserRole, SupplyNeed, DailyReport, WeeklyReport } from './types';
 import {
   loadOrders,
   loadPreferences,
@@ -12,6 +12,8 @@ import {
   saveLocalSupplyNeeds,
   loadLocalDailyReports,
   saveLocalDailyReports,
+  loadLocalWeeklyReports,
+  saveLocalWeeklyReports,
   getSavedReferenceDate,
   saveReferenceDate,
   getEffectiveDate,
@@ -39,6 +41,7 @@ import {
   subscribeToPreferences,
   subscribeToSupplyNeeds,
   subscribeToDailyReports,
+  subscribeToWeeklyReports,
   createOrderInFirestore,
   updateOrderInFirestore,
   deleteOrderInFirestore,
@@ -48,6 +51,8 @@ import {
   clearSupplyNeedInFirestore,
   saveDailyReportInFirestore,
   deleteDailyReportInFirestore,
+  saveWeeklyReportInFirestore,
+  deleteWeeklyReportInFirestore,
 } from './services/orderService';
 
 const PORTAL_AUTH_KEY = 'gapuro_portal_authorized';
@@ -125,11 +130,14 @@ export default function App() {
     return loadLocalSupplyNeeds();
   });
 
-  // Daily Reports State (Laporan Penjualan Harian)
+  // Daily & Weekly Reports State (Laporan Penjualan Mingguan: Jumat s/d Kamis)
   const [isLaporanModalOpen, setIsLaporanModalOpen] = useState(false);
   const [selectedLaporanRombongId, setSelectedLaporanRombongId] = useState<RombongId>('rmb1');
   const [dailyReports, setDailyReports] = useState<DailyReport[]>(() => {
     return loadLocalDailyReports();
+  });
+  const [weeklyReports, setWeeklyReports] = useState<WeeklyReport[]>(() => {
+    return loadLocalWeeklyReports();
   });
 
   const [isMobileFrame, setIsMobileFrame] = useState(true);
@@ -236,11 +244,23 @@ export default function App() {
       }
     );
 
+    // 5. Subscribe to weekly reports in real-time (periode Jumat s/d Kamis)
+    const unsubscribeWeeklyReports = subscribeToWeeklyReports(
+      (realtimeWeekly) => {
+        setWeeklyReports(realtimeWeekly);
+        saveLocalWeeklyReports(realtimeWeekly);
+      },
+      (err) => {
+        console.error('Error in realtime weekly reports subscription:', err);
+      }
+    );
+
     return () => {
       unsubscribeOrders();
       unsubscribePrefs();
       unsubscribeSupply();
       unsubscribeDailyReports();
+      unsubscribeWeeklyReports();
     };
   }, [isAuthenticated]);
 
@@ -450,6 +470,52 @@ export default function App() {
       setDailyReports((prev) => {
         const updated = prev.filter((r) => r.id !== reportId);
         saveLocalDailyReports(updated);
+        return updated;
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Handler: Save / Update Weekly Report (Periode Jumat s/d Kamis)
+  const handleSaveWeeklyReport = async (report: WeeklyReport) => {
+    try {
+      setIsSyncing(true);
+      await saveWeeklyReportInFirestore(report);
+      setWeeklyReports((prev) => {
+        const filtered = prev.filter((r) => r.id !== report.id);
+        const updated = [...filtered, report];
+        saveLocalWeeklyReports(updated);
+        return updated;
+      });
+    } catch (err) {
+      console.error('Failed to save weekly report to Firestore:', err);
+      setWeeklyReports((prev) => {
+        const filtered = prev.filter((r) => r.id !== report.id);
+        const updated = [...filtered, report];
+        saveLocalWeeklyReports(updated);
+        return updated;
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Handler: Delete Weekly Report
+  const handleDeleteWeeklyReport = async (reportId: string) => {
+    try {
+      setIsSyncing(true);
+      await deleteWeeklyReportInFirestore(reportId);
+      setWeeklyReports((prev) => {
+        const updated = prev.filter((r) => r.id !== reportId);
+        saveLocalWeeklyReports(updated);
+        return updated;
+      });
+    } catch (err) {
+      console.error('Failed to delete weekly report from Firestore:', err);
+      setWeeklyReports((prev) => {
+        const updated = prev.filter((r) => r.id !== reportId);
+        saveLocalWeeklyReports(updated);
         return updated;
       });
     } finally {
@@ -762,7 +828,7 @@ export default function App() {
         onClearNeed={userRole === 'admin' ? handleClearSupplyNeed : undefined}
       />
 
-      {/* Laporan Penjualan Harian Modal (Stok, Pembayaran, Gaji & Download PDF) */}
+      {/* Laporan Penjualan Mingguan Modal (Siklus Jumat s/d Kamis, Tutup Buku & Download PDF) */}
       <LaporanHarianModal
         isOpen={isLaporanModalOpen}
         onClose={() => setIsLaporanModalOpen(false)}
@@ -770,9 +836,9 @@ export default function App() {
         currentRombongId={selectedLaporanRombongId}
         referenceDate={referenceDate}
         preferences={preferences}
-        dailyReports={dailyReports}
-        onSaveReport={handleSaveDailyReport}
-        onDeleteReport={userRole === 'admin' ? handleDeleteDailyReport : undefined}
+        weeklyReports={weeklyReports}
+        onSaveWeeklyReport={handleSaveWeeklyReport}
+        onDeleteWeeklyReport={userRole === 'admin' ? handleDeleteWeeklyReport : undefined}
       />
     </div>
   );
